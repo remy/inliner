@@ -34,6 +34,8 @@ This will output the inlined markup.  You can easily save this to a new file for
 
     inliner http://remysharp.com > remysharp.html
 
+To use inline inside your script:
+
     var inliner = require('inliner');
 
     inliner('http://remysharp.com', function (html) {
