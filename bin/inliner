@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 if (!process.ARGV[2]) {
   console.log('Usage: inliner http://yoursite.com\ninliner will output the inlined HTML, CSS, images and JavaScript');
   process.exit();
