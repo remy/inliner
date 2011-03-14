@@ -10,6 +10,18 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 - Base64 encode images
 - Puts everything back together as a single HTML file with a simplfied doctype
 
+## Installation
+
+Check out a working copy of the source code with [Git](http://git-scm.com), or install `servedir` via [npm](http://npmjs.org). The latter will also install `inliner` into the system's `bin` path.
+
+    $ git clone git://github.com/rem/inliner.git
+    $ npm install inliner
+
+Alternatively, `inliner` can be run directly from the repository using Node:
+
+    $ node bin/inliner
+    $ ./bin/inliner
+
 ## Usage
 
 The inliner.js script requires jsdom to be installed via `npm install jsdom`, otherwise you should be good to run:
