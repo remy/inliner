@@ -1,0 +1,22 @@
+{
+  "name": "inliner",
+  "version": "0.0.1",
+  "description": "Utility to inline images, CSS and JavaScript for a web page - useful for mobile sites",
+  "homepage": "http://github.com/remy/inliner",
+  "main": "./lib/inliner",
+  "keywords": ["mobile", "inline", "production", "build", "minify"],
+  "author": {
+    "name": "Remy Sharp",
+    "web": "http://github.com/remy"
+  },
+  "dependencies": {
+    "jsdom": ">= 0.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/remy/inliner.git"
+  },
+  "bin": {
+    "inliner": "./bin/inliner"
+  }
+}

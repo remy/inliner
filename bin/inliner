@@ -1,5 +1,8 @@
-var inliner = require('./inliner').inliner;
+if (!process.ARGV[2]) {
+  console.log('Usage: inliner http://yoursite.com\ninliner will output the inlined HTML, CSS, images and JavaScript');
+  process.exit();
+}
 
-inliner(process.ARGV[2] || 'http://remysharp.com', function (html) {
+require('../lib/inliner')(process.ARGV[2], function (html) {
   console.log(html);
 });

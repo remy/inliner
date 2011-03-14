@@ -21,7 +21,7 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 
 I plan to include a web service at some point, but obviously this won't be able to access localhost domains.
 
-Once you've inlined the crap out of the page, add the `manifest="self.manifest"` to the `html` tag and create an empty file called self.manifest ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
+Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.manifest ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
 
 ## Limitations / Caveats
 
