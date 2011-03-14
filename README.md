@@ -12,6 +12,8 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 
 ## Usage
 
+The inliner.js script requires jsdom to be installed via `npm install jsdom`, otherwise you should be good to run:
+
     var inliner = require('./inliner').inliner;
 
 	inliner('http://remysharp.com', function (html) {
