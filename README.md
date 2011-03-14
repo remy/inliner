@@ -24,14 +24,26 @@ Alternatively, `inliner` can be run directly from the repository using Node:
 
 ## Usage
 
+### via npm
+
+If you installed via npm, then you can use inliner via the command line as per:
+
+    inliner http://remysharp.com
+
+This will output the inlined markup.  You can easily save this to a new file for testing:
+
+    inliner http://remysharp.com > remysharp.html
+
+### via library
+
 The inliner.js script requires jsdom to be installed via `npm install jsdom`, otherwise you should be good to run:
 
-    var inliner = require('./inliner').inliner;
+    var inliner = require('./lib/inliner');
 
-	inliner('http://remysharp.com', function (html) {
-	  // compressed and inlined HTML page
-	  console.log(html);
-	});
+    inliner('http://remysharp.com', function (html) {
+      // compressed and inlined HTML page
+      console.log(html);
+    });
 
 I plan to include a web service at some point, but obviously this won't be able to access localhost domains.
 
