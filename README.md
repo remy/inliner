@@ -34,16 +34,14 @@ This will output the inlined markup.  You can easily save this to a new file for
 
     inliner http://remysharp.com > remysharp.html
 
-### via library
-
-The inliner.js script requires jsdom to be installed via `npm install jsdom`, otherwise you should be good to run:
-
-    var inliner = require('./lib/inliner');
+    var inliner = require('inliner');
 
     inliner('http://remysharp.com', function (html) {
       // compressed and inlined HTML page
       console.log(html);
     });
+
+Note that if you include the inliner script via a git submodule, it requires jsdom to be installed via `npm install jsdom`, otherwise you should be good to run.
 
 I plan to include a web service at some point, but obviously this won't be able to access localhost domains.
 
