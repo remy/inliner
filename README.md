@@ -47,7 +47,7 @@ Note that if you include the inliner script via a git submodule, it requires jsd
 
 I plan to include a web service at some point, but obviously this won't be able to access localhost domains.
 
-Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.manifest ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
+Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.appcache ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
 
 ## Limitations / Caveats
 
