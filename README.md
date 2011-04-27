@@ -15,7 +15,7 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 Check out a working copy of the source code with [Git](http://git-scm.com), or install `servedir` via [npm](http://npmjs.org). The latter will also install `inliner` into the system's `bin` path.
 
     $ git clone git://github.com/rem/inliner.git
-    $ npm install inliner
+    $ npm install inliner -g
 
 Alternatively, `inliner` can be run directly from the repository using Node:
 
