@@ -1,8 +1,8 @@
 var URL = require('url'),
     Buffer = require('buffer').Buffer,
     jsdom = require('jsdom'),
-    jsp = require('./uglify-js/lib/parse-js'),
-    pro = require('./uglify-js/lib/process');
+    jsp = require('uglify-js/lib/parse-js'),
+    pro = require('uglify-js/lib/process');
 
 function get(url, callback) {
   var oURL = URL.parse(url),
@@ -232,7 +232,13 @@ var inliner = module.exports = function (url, options, callback) {
       }
     });
 
-    // console.log($scripts[$scripts.length - 1].parentNode.lastChild == $scripts[$scripts.length - 1]);
+    // edge case - if there's no images, nor scripts, nor links - we call finished manually
+    if (assets.links.length == 0 && 
+        assets.styles.length == 0 && 
+        assets.images.length == 0 && 
+        assets.scripts.length == 0) {
+      finished();
+    }
 
     /** Inliner jobs:
      *  1. get all inline images and base64 encode
@@ -250,4 +256,15 @@ var inliner = module.exports = function (url, options, callback) {
   });
 };
 
-inliner.vesion = '0.0.1';
+inliner.version = JSON.parse(require('fs').readFileSync('package.json').toString()).version;
+
+if (!module.parent) {
+  if (process.argv[2] === undefined) {
+    console.log('Usage: inliner http://yoursite.com\ninliner will output the inlined HTML, CSS, images and JavaScript');
+    process.exit();
+  }
+
+  inliner(process.argv[2], function (html) {
+    console.log(html);
+  });
+}
