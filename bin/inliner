@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
-require('../inliner')(process.argv[2], function (html) {
+var inliner = require('../inliner');
+
+if (process.argv[2] === undefined) {
+  console.log('Usage: inliner http://yoursite.com\ninliner will output the inlined HTML, CSS, images and JavaScript');
+  process.exit();
+}
+
+inliner(process.argv[2], function (html) {
   console.log(html);
 });
