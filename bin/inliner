@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+
+require('../inliner')(process.argv[2], function (html) {
+  console.log(html);
+});
