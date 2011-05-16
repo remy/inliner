@@ -21,7 +21,8 @@ function get(url, callback) {
       if (response.statusCode == 200) body += chunk;
     });
   });
-  
+
+  debugger;
 }
 
 function img2base64(url, callback) {
@@ -65,8 +66,8 @@ function compressCSS(css) {
 
 function getImagesFromCSS(rooturl, rawCSS, callback) {
   var images = {},
-      urlMatch = /url\((?:['"]*)(.*?)(?:['"]*)\)/g,
-      singleURLMatch = /url\((?:['"]*)(.*?)(?:['"]*)\)/,
+      urlMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/g,
+      singleURLMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/,
       matches = rawCSS.match(urlMatch),
       imageCount = matches === null ? 0 : matches.length; // TODO check!
   
@@ -100,6 +101,18 @@ function getImagesFromCSS(rooturl, rawCSS, callback) {
   }
 }
 
+function removeComments(element) {
+  var nodes = element.childNodes,
+      i = nodes.length;
+  
+  while (i--) {
+    if (nodes[i].nodeName === '#comment') {
+      element.removeChild(nodes[i]);
+    }
+    removeComments(nodes[i]);
+  }
+}
+
 var inliner = module.exports = function (url, options, callback) {
   
   if (typeof options == 'function') {
@@ -116,7 +129,7 @@ var inliner = module.exports = function (url, options, callback) {
     var todo = { scripts: true, images: true, links: true, styles: true },
         assets = {
           scripts: window.$('script[src]'),
-          images: window.$('img'),
+          images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
           links: window.$('link[rel=stylesheet]'),
           styles: window.$('style')
         },
@@ -136,6 +149,9 @@ var inliner = module.exports = function (url, options, callback) {
       }
 
       if (items === 0) {
+        // manually remove the comments
+        var els = removeComments(window.document.documentElement);
+        
         // collapse the white space
         var html = window.document.innerHTML;
         if (options.collapseWhitespace) html = html.replace(/\s+/g, ' ');
@@ -196,8 +212,15 @@ var inliner = module.exports = function (url, options, callback) {
       if (breakdown.scripts == 0) {
         // now compress the source JavaScript
         assets.scripts.each(function () {
-            var orig_code = this.innerHTML,
-                ast = jsp.parse(orig_code); // parse code and get the initial AST
+          var $script = window.$(this),
+              src = $script.attr('src'),
+              orig_code = this.innerHTML;
+
+          $script.removeAttr('src');
+
+          // don't compress already minified code
+          if(!/\bmin\b/.test(src)) { 
+            var ast = jsp.parse(orig_code); // parse code and get the initial AST
 
             ast = pro.ast_mangle(ast); // get a new AST with mangled names
             ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
@@ -207,8 +230,8 @@ var inliner = module.exports = function (url, options, callback) {
             final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
 
             window.$(this).text(final_code);
+          }
         });
-        // items -= assets.scripts.length;
         finished();
       }
     }
@@ -224,7 +247,7 @@ var inliner = module.exports = function (url, options, callback) {
         scriptsFinished();
       } else {
         get(scriptURL, function (data) {
-          $script.removeAttr('src').text(data);
+          $script.text(data);
           // $script.before('<!-- ' + scriptURL + ' -->');
           breakdown.scripts--;
           scriptsFinished();
