@@ -2,54 +2,76 @@ var URL = require('url'),
     Buffer = require('buffer').Buffer,
     jsdom = require('jsdom'),
     jsp = require('uglify-js/lib/parse-js'),
-    pro = require('uglify-js/lib/process');
+    pro = require('uglify-js/lib/process'),
+    http = {
+      http: require('http'),
+      https: require('https')
+    };
 
-function get(url, callback) {
+function get(url, rules, callback) {
   var oURL = URL.parse(url),
-      http = require('http'),
-      client = http.createClient(oURL.port || 80, oURL.hostname),
-      request = client.request('GET', oURL.pathname, {'host': oURL.hostname});
-
-  request.end();
-  request.on('response', function (response) {
-    var body = "";
-
-    response.on('end', function () {
+      options = {
+        host: oURL.hostname,
+        port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
+        path: oURL.pathname,
+        method: 'GET'
+      },
+      body = '';
+      
+  if (typeof rules == 'function') {
+    callback = rules;
+    rules = {};
+  }
+  
+  
+  // console.log(oURL, options);
+  
+  http[oURL.protocol.slice(0, -1) || 'http'].request(options, function (res) {
+    res.on('data', function (chunk) {
+      if (res.statusCode == 200) body += chunk;
+    });
+    
+    res.on('error', function () {
+      console.log('err');
+      console.log(arguments);
+    });
+    
+    res.on('end', function () {
+      if (rules && rules.not) {
+        if (res.headers['content-type'].indexOf(rules.not) !== -1) {
+          body = '';
+        }
+      }
       callback && callback(body);
     });
-    response.on('data', function (chunk) {
-      if (response.statusCode == 200) body += chunk;
-    });
-  });
-
-  debugger;
+  }).end();
 }
 
 function img2base64(url, callback) {
   var oURL = URL.parse(url),
-      http = require('http'),
-      client = http.createClient(oURL.port || 80, oURL.hostname),
-      request = client.request('GET', oURL.pathname, {'host': oURL.hostname});
+      options = {
+        host: oURL.host,
+        port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
+        path: oURL.pathname,
+        method: 'GET'
+      };
+  
+  http[oURL.protocol.slice(0, -1) || 'http'].request(options, function (res) {
+    var type = res.headers['content-type'],
+        prefix = 'data:' + type + ';base64,',
+        body = '';
 
-  request.end();
-  request.on('response', function (response) {
-    var type = response.headers["content-type"],
-        prefix = "data:" + type + ";base64,",
-        body = "";
-
-    response.setEncoding('binary');
-    response.on('end', function () {
+    res.setEncoding('binary');
+    res.on('end', function () {
       var base64 = new Buffer(body, 'binary').toString('base64'),
           data = prefix + base64;
-      
-      // console.error('dataurl for ' + url + ': ' + data.length);
-      
+
       callback(data);
     });
-    response.on('data', function (chunk) {
-      if (response.statusCode == 200) body += chunk;
+    res.on('data', function (chunk) {
+      if (res.statusCode == 200) body += chunk;
     });
-  });
+  }).end()
 }
 
 function compressCSS(css) {
@@ -106,7 +128,7 @@ function removeComments(element) {
       i = nodes.length;
   
   while (i--) {
-    if (nodes[i].nodeName === '#comment') {
+    if (nodes[i].nodeName === '#comment' && nodes[i].nodeValue.indexOf('[') !== 0) {
       element.removeChild(nodes[i]);
     }
     removeComments(nodes[i]);
@@ -114,14 +136,17 @@ function removeComments(element) {
 }
 
 var inliner = module.exports = function (url, options, callback) {
+  var root = url;
   
   if (typeof options == 'function') {
     callback = options;
     options = { compressCSS: true, collapseWhitespace: true };
   }
   
-  jsdom.env(url, [
-    'http://code.jquery.com/jquery-1.5.min.js'
+  get(url, function (html) {
+  // console.log(html.replace(/^\s*/g, ''), 'test');
+  jsdom.env(html, '', [
+    'jquery.min.js'
   ], function(errors, window) {
     // remove jQuery that was included with jsdom
     window.$('script:last').remove();
@@ -173,14 +198,42 @@ var inliner = module.exports = function (url, options, callback) {
         finished();
       });
     });
+    
+    function getImportCSS(css, callback) {
+      var position = css.indexOf('@import');
+      if (position !== -1) {
+        var match = css.match(/@import\s*(.*)/);
+        
+        if (match !== null && match.length) {
+          var url = window.$.trim(match[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '')).split(' '); // clean up
+          // if url has a length > 1, then we have media types to target
+          get(URL.resolve(root, url[0]), function (importedCSS) {
+            if (url.length > 1) {
+              url.shift();
+              importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
+            }
+            css = css.replace(/@(import.*$)/, '/* $1 */\n' + importedCSS);
+            getImportCSS(css, callback);
+          });          
+        }
+      } else {
+        if (options.compressCSS) css = compressCSS(css);
+        
+        callback(css);
+      }
+    }
 
     todo.styles && assets.styles.each(function () {
       var style = this;
       getImagesFromCSS(url, this.innerHTML, function (css) {
-        style.innerHTML = css;
-        breakdown.styles--;
-        // console.log('style finished');
-        finished();
+        // do one level of @import rules
+        getImportCSS(css, function (css) {
+          style.innerHTML = css;
+
+          breakdown.styles--;
+          // console.log('style finished');
+          finished();
+        });
       });
     });
 
@@ -190,20 +243,22 @@ var inliner = module.exports = function (url, options, callback) {
 
       get(linkURL, function (css) {
         getImagesFromCSS(linkURL, css, function (css) {
-          if (options.compressCSS) css = compressCSS(css);
-          breakdown.links--;
-          
-          var style = '',
-              media = link.getAttribute('media');
-          if (false && media) {
-            style = '<style>@media ' + media + '{' + css + '}</style>';
-          } else {
-            style = '<style>' + css + '</style>';
-          }
-          
-          window.$(link).replaceWith(style);
-          // console.log('link finished');
-          finished();
+          getImportCSS(css, function (css) {
+            breakdown.links--;
+
+            var style = '',
+                media = link.getAttribute('media');
+            
+            if (media) {
+              style = '<style>@media ' + media + '{' + css + '}</style>';
+            } else {
+              style = '<style>' + css + '</style>';
+            }
+
+            window.$(link).replaceWith(style);
+            // console.log('link finished');
+            finished();            
+          });
         });
       });
     });
@@ -216,20 +271,26 @@ var inliner = module.exports = function (url, options, callback) {
               src = $script.attr('src'),
               orig_code = this.innerHTML;
 
-          $script.removeAttr('src');
+          // only remove the src if we have a script body
+          if (orig_code) { 
+            $script.removeAttr('src');
+          }          
 
           // don't compress already minified code
           if(!/\bmin\b/.test(src)) { 
-            var ast = jsp.parse(orig_code); // parse code and get the initial AST
+            try {
+              var ast = jsp.parse(orig_code); // parse code and get the initial AST
 
-            ast = pro.ast_mangle(ast); // get a new AST with mangled names
-            ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-            var final_code = pro.gen_code(ast);
+              ast = pro.ast_mangle(ast); // get a new AST with mangled names
+              ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
+              var final_code = pro.gen_code(ast);
 
-            // some protection against putting script tags in the body
-            final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
+              // some protection against putting script tags in the body
+              final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
 
-            window.$(this).text(final_code);
+              window.$(this).text(final_code);              
+            } catch (e) {
+            }
           }
         });
         finished();
@@ -246,8 +307,8 @@ var inliner = module.exports = function (url, options, callback) {
         breakdown.scripts--;
         scriptsFinished();
       } else {
-        get(scriptURL, function (data) {
-          $script.text(data);
+        get(scriptURL, { not: 'text/html' }, function (data) {
+          if (data) $script.text(data);
           // $script.before('<!-- ' + scriptURL + ' -->');
           breakdown.scripts--;
           scriptsFinished();
@@ -277,9 +338,11 @@ var inliner = module.exports = function (url, options, callback) {
      *  - javascript validation - i.e. not throwing errors
      */
   });
+  
+  });
 };
 
-inliner.version = JSON.parse(require('fs').readFileSync('package.json').toString()).version;
+inliner.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
 
 if (!module.parent) {
   if (process.argv[2] === undefined) {
