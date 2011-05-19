@@ -46,9 +46,20 @@ I plan to include a web service at some point, but obviously this won't be able 
 
 Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.appcache ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
 
+## Support
+
+- Collapses all white space in HTML
+- Strips all HTML comments
+- Pulls JavaScript and CSS inline to HTML
+- Compresses JavaScript via uglify (if not compressed already)
+- Converts all images to based64 data urls, both inline images and CSS images
+- Imports all @import rules from CSS (recusively)
+- Applies media query rules (for print, tv, etc media types)
+- Leaves conditional comments in place
+- If JavaScript can't be imported (or is Google Analytics), source is not put inline
+
 ## Limitations / Caveats
 
 - Whitespace compression might get a little heavy handed - all whitespace is collapsed from n spaces to one space.
-- Doesn't support @import rules in CSS
-- I've not tested it much (yet)! :)
-- It was written in about 2 hours or so, so the code is a little messy, sorry!
+- Compresses whitespace inside of `<pre>` elements
+  
