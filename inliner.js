@@ -8,14 +8,21 @@ var URL = require('url'),
       https: require('https')
     };
 
-function get(url, rules, callback) {
+function makeRequest(url) {
+  console.error('GET ' + url);
   var oURL = URL.parse(url),
       options = {
         host: oURL.hostname,
         port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
         path: oURL.pathname,
         method: 'GET'
-      },
+      };
+      
+  return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
+}
+
+function get(url, rules, callback) {
+  var request = makeRequest(url),
       body = '';
       
   if (typeof rules == 'function') {
@@ -23,10 +30,7 @@ function get(url, rules, callback) {
     rules = {};
   }
   
-  
-  // console.log(oURL, options);
-  
-  http[oURL.protocol.slice(0, -1) || 'http'].request(options, function (res) {
+  request.on('response', function (res) {
     res.on('data', function (chunk) {
       if (res.statusCode == 200) body += chunk;
     });
@@ -48,15 +52,10 @@ function get(url, rules, callback) {
 }
 
 function img2base64(url, callback) {
-  var oURL = URL.parse(url),
-      options = {
-        host: oURL.host,
-        port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
-        path: oURL.pathname,
-        method: 'GET'
-      };
+  var request = makeRequest(url),
+      body = '';
   
-  http[oURL.protocol.slice(0, -1) || 'http'].request(options, function (res) {
+  request.on('response', function (res) {
     var type = res.headers['content-type'],
         prefix = 'data:' + type + ';base64,',
         body = '';
@@ -146,7 +145,7 @@ var inliner = module.exports = function (url, options, callback) {
   get(url, function (html) {
   // console.log(html.replace(/^\s*/g, ''), 'test');
   jsdom.env(html, '', [
-    'jquery.min.js'
+    'http://code.jquery.com/jquery.min.js'
   ], function(errors, window) {
     // remove jQuery that was included with jsdom
     window.$('script:last').remove();
