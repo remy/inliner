@@ -1,4 +1,6 @@
 var URL = require('url'),
+    util = require('util'),
+    events = require('events'),
     Buffer = require('buffer').Buffer,
     jsdom = require('jsdom'),
     jsp = require('uglify-js/lib/parse-js'),
@@ -6,10 +8,10 @@ var URL = require('url'),
     http = {
       http: require('http'),
       https: require('https')
-    };
+    },
+    defaults = { compressCSS: true, collapseWhitespace: true };
 
 function makeRequest(url) {
-  console.error('GET ' + url);
   var oURL = URL.parse(url),
       options = {
         host: oURL.hostname,
@@ -21,34 +23,41 @@ function makeRequest(url) {
   return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
 }
 
-function get(url, rules, callback) {
-  var request = makeRequest(url),
-      body = '';
-      
-  if (typeof rules == 'function') {
-    callback = rules;
-    rules = {};
-  }
-  
-  request.on('response', function (res) {
-    res.on('data', function (chunk) {
-      if (res.statusCode == 200) body += chunk;
-    });
-    
-    res.on('error', function () {
-      console.log('err');
-      console.log(arguments);
-    });
-    
-    res.on('end', function () {
-      if (rules && rules.not) {
-        if (res.headers['content-type'].indexOf(rules.not) !== -1) {
-          body = '';
+function getter(parent) {
+  return function (url, rules, callback) {
+    var request = makeRequest(url),
+        body = '';
+
+    if (typeof rules == 'function') {
+      callback = rules;
+      rules = {};
+    }
+
+    request.on('response', function (res) {
+      res.on('data', function (chunk) {
+        if (res.statusCode == 200) body += chunk;
+      });
+
+      res.on('error', function () {
+        console.log('err');
+        console.log(arguments);
+      });
+
+      res.on('end', function () {
+        if (rules && rules.not) {
+          if (res.headers['content-type'].indexOf(rules.not) !== -1) {
+            body = '';
+          }
         }
-      }
-      callback && callback(body);
-    });
-  }).end();
+        
+        if (body) {
+          parent.emit('progress', 'get ' + url);
+        }
+        
+        callback && callback(body);
+      });
+    }).end();
+  }
 }
 
 function img2base64(url, callback) {
@@ -108,6 +117,7 @@ function getImagesFromCSS(rooturl, rawCSS, callback) {
       var resolvedURL = URL.resolve(rooturl, url);
       if (images[url] === undefined) {
         img2base64(resolvedURL, function (dataurl) {
+          inliner.emit('progress', 'base64encode ' + resolvedURL);
           imageCount--;
           if (images[url] === undefined) images[url] = dataurl;
           checkFinished();
@@ -134,12 +144,18 @@ function removeComments(element) {
   }
 }
 
-var inliner = module.exports = function (url, options, callback) {
-  var root = url;
+function Inliner(url, options, callback) {
+  var root = url,
+      inliner = this,
+      get = getter(this);
   
+  events.EventEmitter.call(this);
+
   if (typeof options == 'function') {
     callback = options;
-    options = { compressCSS: true, collapseWhitespace: true };
+    options = defaults;
+  } else if (options === undefined) {
+    options = defaults;
   }
   
   get(url, function (html) {
@@ -152,7 +168,7 @@ var inliner = module.exports = function (url, options, callback) {
 
     var todo = { scripts: true, images: true, links: true, styles: true },
         assets = {
-          scripts: window.$('script[src]'),
+          scripts: window.$('script'),
           images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
           links: window.$('link[rel=stylesheet]'),
           styles: window.$('style')
@@ -180,7 +196,9 @@ var inliner = module.exports = function (url, options, callback) {
         var html = window.document.innerHTML;
         if (options.collapseWhitespace) html = html.replace(/\s+/g, ' ');
         // console.log(html);
-        callback('<!DOCTYPE html>' + html);
+        html = '<!DOCTYPE html>' + html;
+        callback && callback(html);
+        inliner.emit('end', html);
       } else if (items < 0) {
         console.log('something went wrong on finish');
         console.dir(breakdown);
@@ -188,8 +206,10 @@ var inliner = module.exports = function (url, options, callback) {
     }
 
     todo.images && assets.images.each(function () {
-      var img = this;
-      img2base64(URL.resolve(url, img.src), function (dataurl) {
+      var img = this,
+          resolvedURL = URL.resolve(url, img.src);
+      img2base64(resolvedURL, function (dataurl) {
+        inliner.emit('progress', 'base64encode ' + resolvedURL);
         if (dataurl) images[img.src] = dataurl;
         img.src = dataurl;
         breakdown.images--;
@@ -206,7 +226,9 @@ var inliner = module.exports = function (url, options, callback) {
         if (match !== null && match.length) {
           var url = window.$.trim(match[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '')).split(' '); // clean up
           // if url has a length > 1, then we have media types to target
-          get(URL.resolve(root, url[0]), function (importedCSS) {
+          var resolvedURL = URL.resolve(root, url[0]);
+          get(resolvedURL, function (importedCSS) {
+            inliner.emit('progress', 'import ' + resolvedURL);
             if (url.length > 1) {
               url.shift();
               importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
@@ -227,6 +249,7 @@ var inliner = module.exports = function (url, options, callback) {
       getImagesFromCSS(url, this.innerHTML, function (css) {
         // do one level of @import rules
         getImportCSS(css, function (css) {
+          if (options.compressCSS) inliner.emit('progress', 'compressed ' + resolvedURL);
           style.innerHTML = css;
 
           breakdown.styles--;
@@ -243,6 +266,7 @@ var inliner = module.exports = function (url, options, callback) {
       get(linkURL, function (css) {
         getImagesFromCSS(linkURL, css, function (css) {
           getImportCSS(css, function (css) {
+            if (options.compressCSS) inliner.emit('progress', 'compressed ' + linkURL);
             breakdown.links--;
 
             var style = '',
@@ -273,10 +297,10 @@ var inliner = module.exports = function (url, options, callback) {
           // only remove the src if we have a script body
           if (orig_code) { 
             $script.removeAttr('src');
-          }          
+          }
 
           // don't compress already minified code
-          if(!/\bmin\b/.test(src)) { 
+          if(!/\bmin\b/.test(src) && !/google-analytics/.test(src)) { 
             try {
               var ast = jsp.parse(orig_code); // parse code and get the initial AST
 
@@ -288,6 +312,11 @@ var inliner = module.exports = function (url, options, callback) {
               final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
 
               window.$(this).text(final_code);              
+              if (src) {
+                inliner.emit('progress', 'compressed ' + src);
+              } else {
+                inliner.emit('progress', 'compressed inline script');
+              }              
             } catch (e) {
             }
           }
@@ -339,9 +368,13 @@ var inliner = module.exports = function (url, options, callback) {
   });
   
   });
-};
+}
 
-inliner.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
+util.inherits(Inliner, events.EventEmitter);
+
+Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
+
+module.exports = Inliner;
 
 if (!module.parent) {
   if (process.argv[2] === undefined) {
@@ -349,7 +382,7 @@ if (!module.parent) {
     process.exit();
   }
 
-  inliner(process.argv[2], function (html) {
+  var inliner = new Inliner(process.argv[2], function (html) {
     console.log(html);
   });
 }
