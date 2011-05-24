@@ -94,7 +94,7 @@ function compressCSS(css) {
     .replace(/\n+/g, '');
 }
 
-function getImagesFromCSS(rooturl, rawCSS, callback) {
+function getImagesFromCSS(inliner, rooturl, rawCSS, callback) {
   var images = {},
       urlMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/g,
       singleURLMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/,
@@ -117,7 +117,7 @@ function getImagesFromCSS(rooturl, rawCSS, callback) {
       var resolvedURL = URL.resolve(rooturl, url);
       if (images[url] === undefined) {
         img2base64(resolvedURL, function (dataurl) {
-          inliner.emit('progress', 'base64encode ' + resolvedURL);
+          inliner.emit('progress', 'encode ' + resolvedURL);
           imageCount--;
           if (images[url] === undefined) images[url] = dataurl;
           checkFinished();
@@ -209,7 +209,7 @@ function Inliner(url, options, callback) {
       var img = this,
           resolvedURL = URL.resolve(url, img.src);
       img2base64(resolvedURL, function (dataurl) {
-        inliner.emit('progress', 'base64encode ' + resolvedURL);
+        inliner.emit('progress', 'encode ' + resolvedURL);
         if (dataurl) images[img.src] = dataurl;
         img.src = dataurl;
         breakdown.images--;
@@ -246,10 +246,10 @@ function Inliner(url, options, callback) {
 
     todo.styles && assets.styles.each(function () {
       var style = this;
-      getImagesFromCSS(url, this.innerHTML, function (css) {
+      getImagesFromCSS(inliner, url, this.innerHTML, function (css) {
         // do one level of @import rules
         getImportCSS(css, function (css) {
-          if (options.compressCSS) inliner.emit('progress', 'compressed ' + resolvedURL);
+          if (options.compressCSS) inliner.emit('progress', 'compress ' + resolvedURL);
           style.innerHTML = css;
 
           breakdown.styles--;
@@ -264,9 +264,9 @@ function Inliner(url, options, callback) {
           linkURL = URL.resolve(url, link.href);
 
       get(linkURL, function (css) {
-        getImagesFromCSS(linkURL, css, function (css) {
+        getImagesFromCSS(inliner, linkURL, css, function (css) {
           getImportCSS(css, function (css) {
-            if (options.compressCSS) inliner.emit('progress', 'compressed ' + linkURL);
+            if (options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
             breakdown.links--;
 
             var style = '',
@@ -313,9 +313,9 @@ function Inliner(url, options, callback) {
 
               window.$(this).text(final_code);              
               if (src) {
-                inliner.emit('progress', 'compressed ' + src);
+                inliner.emit('progress', 'compress ' + URL.resolve(root, src));
               } else {
-                inliner.emit('progress', 'compressed inline script');
+                inliner.emit('progress', 'compress inline script');
               }              
             } catch (e) {
             }
