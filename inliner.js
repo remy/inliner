@@ -249,7 +249,7 @@ function Inliner(url, options, callback) {
       getImagesFromCSS(inliner, url, this.innerHTML, function (css) {
         // do one level of @import rules
         getImportCSS(css, function (css) {
-          if (options.compressCSS) inliner.emit('progress', 'compress ' + resolvedURL);
+          if (options.compressCSS) inliner.emit('progress', 'compress inline css');
           style.innerHTML = css;
 
           breakdown.styles--;
