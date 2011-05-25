@@ -235,7 +235,6 @@ function Inliner(url, options, callback) {
           img.src = dataurl;
           breakdown.images--;
           inliner.todo--;
-          console.log('images finished');
           finished();
         });
       });
