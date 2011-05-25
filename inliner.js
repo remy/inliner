@@ -24,7 +24,7 @@ function makeRequest(url) {
 }
 
 function getter(parent) {
-  return function (url, rules, callback) {
+  return function get(url, rules, callback) {
     var request = makeRequest(url),
         body = '';
 
@@ -48,6 +48,10 @@ function getter(parent) {
           if (res.headers['content-type'].indexOf(rules.not) !== -1) {
             body = '';
           }
+        }
+        
+        if (res.headers['location']) {
+          return get(res.headers['location'], rules, callback);
         }
         
         if (body) {
