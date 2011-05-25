@@ -101,7 +101,11 @@ function getImagesFromCSS(inliner, rooturl, rawCSS, callback) {
       matches = rawCSS.match(urlMatch),
       imageCount = matches === null ? 0 : matches.length; // TODO check!
   
+  inliner.total += imageCount;
+  inliner.todo += imageCount;
+  
   function checkFinished() {
+    inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
     if (imageCount < 0) {
       console.log('something went wrong :-S');
     } else if (imageCount == 0) {
@@ -119,11 +123,13 @@ function getImagesFromCSS(inliner, rooturl, rawCSS, callback) {
         img2base64(resolvedURL, function (dataurl) {
           inliner.emit('progress', 'encode ' + resolvedURL);
           imageCount--;
+          inliner.todo--;
           if (images[url] === undefined) images[url] = dataurl;
           checkFinished();
         });
       } else {
         imageCount--;
+        inliner.todo--;
         checkFinished();
       }
     });
@@ -158,8 +164,13 @@ function Inliner(url, options, callback) {
     options = defaults;
   }
   
+  inliner.total = 1;
+  inliner.todo = 1;
+  inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
+  
   get(url, function (html) {
-
+    inliner.todo--;
+    inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
     jsdom.env(html, '', [
       'http://code.jquery.com/jquery.min.js'
     ], function(errors, window) {
@@ -175,18 +186,26 @@ function Inliner(url, options, callback) {
           },
           breakdown = {},
           images = {};
+          
+      inliner.total = 1;
 
       for (var key in todo) {
         if (todo[key] === true && assets[key]) {
           breakdown[key] = assets[key].length;
+          inliner.total += assets[key].length;
+          inliner.todo += assets[key].length;
         }
       }
+      
+      inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
 
       function finished() {
         var items = 0;
         for (var key in breakdown) {
           items += breakdown[key];
         }
+        
+        inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
 
         if (items === 0) {
           // manually remove the comments
@@ -194,7 +213,9 @@ function Inliner(url, options, callback) {
         
           // collapse the white space
           var html = window.document.innerHTML;
-          if (options.collapseWhitespace) html = html.replace(/\s+/g, ' ');
+          if (options.collapseWhitespace) {
+            html = html.replace(/\s+/g, ' ');
+          }
           // console.log(html);
           html = '<!DOCTYPE html>' + html;
           callback && callback(html);
@@ -213,7 +234,8 @@ function Inliner(url, options, callback) {
           if (dataurl) images[img.src] = dataurl;
           img.src = dataurl;
           breakdown.images--;
-          // console.log('images finished');
+          inliner.todo--;
+          console.log('images finished');
           finished();
         });
       });
@@ -253,6 +275,7 @@ function Inliner(url, options, callback) {
             style.innerHTML = css;
 
             breakdown.styles--;
+            inliner.todo--;
             // console.log('style finished');
             finished();
           });
@@ -268,6 +291,7 @@ function Inliner(url, options, callback) {
             getImportCSS(css, function (css) {
               if (options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
               breakdown.links--;
+              inliner.todo--;
 
               var style = '',
                   media = link.getAttribute('media');
@@ -287,6 +311,7 @@ function Inliner(url, options, callback) {
       });
 
       function scriptsFinished() {
+        inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
         if (breakdown.scripts == 0) {
           // now compress the source JavaScript
           assets.scripts.each(function () {
@@ -301,6 +326,9 @@ function Inliner(url, options, callback) {
 
             // don't compress already minified code
             if(!/\bmin\b/.test(src) && !/google-analytics/.test(src)) { 
+              inliner.todo++;
+              inliner.total++;
+              inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
               try {
                 var ast = jsp.parse(orig_code); // parse code and get the initial AST
 
@@ -319,6 +347,8 @@ function Inliner(url, options, callback) {
                 }              
               } catch (e) {
               }
+              inliner.todo--;
+              inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
             }
           });
           finished();
@@ -333,12 +363,14 @@ function Inliner(url, options, callback) {
 
         if (scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
           breakdown.scripts--;
+          inliner.todo--;
           scriptsFinished();
         } else {
           get(scriptURL, { not: 'text/html' }, function (data) {
             if (data) $script.text(data);
             // $script.before('<!-- ' + scriptURL + ' -->');
             breakdown.scripts--;
+            inliner.todo--;
             scriptsFinished();
           });      
         }
