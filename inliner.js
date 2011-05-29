@@ -5,7 +5,6 @@ var URL = require('url'),
     jsdom = require('jsdom'),
     jsp = require('uglify-js/lib/parse-js'),
     pro = require('uglify-js/lib/process'),
-    uncompress = require('compress-buffer').uncompress,
     http = {
       http: require('http'),
       https: require('https')
