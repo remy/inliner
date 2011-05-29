@@ -8,8 +8,7 @@ var URL = require('url'),
     http = {
       http: require('http'),
       https: require('https')
-    },
-    defaults = { compressCSS: true, collapseWhitespace: true };
+    };
 
 function makeRequest(url) {
   var oURL = URL.parse(url),
@@ -27,74 +26,6 @@ function decompress(gzip, input) {
   
 }
 
-function getter(parent) {
-  return function get(url, rules, callback) {
-    var request = makeRequest(url),
-        body = '';
-
-    if (typeof rules == 'function') {
-      callback = rules;
-      rules = {};
-    }
-    
-    request.on('error', function (error) {
-      console.error(error.message, url);
-      callback && callback('');
-    });
-
-    request.on('response', function (res) {
-      res.on('data', function (chunk) {
-        if (res.statusCode == 200) body += chunk;
-      });
-
-      res.on('end', function () {
-        if (rules && rules.not) {
-          if (res.headers['content-type'].indexOf(rules.not) !== -1) {
-            body = '';
-          }
-        }
-        
-        if (res.headers['location']) {
-          return get(res.headers['location'], rules, callback);
-        } else if (res.headers['content-encoding'] == 'gzip') {
-          // console.log('decode');
-          // body = uncompress(body);
-          // console.log(body);
-        }
-        
-        if (body) {
-          parent.emit('progress', 'get ' + url);
-        }
-        
-        callback && callback(body);
-      });
-    }).end();
-  }
-}
-
-function img2base64(url, callback) {
-  var request = makeRequest(url),
-      body = '';
-  
-  request.on('response', function (res) {
-    var type = res.headers['content-type'],
-        prefix = 'data:' + type + ';base64,',
-        body = '';
-
-    res.setEncoding('binary');
-    res.on('end', function () {
-      var base64 = new Buffer(body, 'binary').toString('base64'),
-          data = prefix + base64;
-
-      callback(data);
-    });
-    res.on('data', function (chunk) {
-      if (res.statusCode == 200) body += chunk;
-      else console.log('fail on ' + url);
-    });
-  }).end()
-}
-
 function compressCSS(css) {
   return css
     .replace(/\s+/g, ' ')
@@ -105,50 +36,6 @@ function compressCSS(css) {
     // .replace(/\{ /g, '{')
     .replace(/; /g, ';')
     .replace(/\n+/g, '');
-}
-
-function getImagesFromCSS(inliner, rooturl, rawCSS, callback) {
-  var images = {},
-      urlMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/g,
-      singleURLMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/,
-      matches = rawCSS.match(urlMatch),
-      imageCount = matches === null ? 0 : matches.length; // TODO check!
-  
-  inliner.total += imageCount;
-  inliner.todo += imageCount;
-  
-  function checkFinished() {
-    inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
-    if (imageCount < 0) {
-      console.log('something went wrong :-S');
-    } else if (imageCount == 0) {
-      callback(rawCSS.replace(urlMatch, function (m, url) {
-        return 'url(' + images[url] + ')';
-      }));
-    }
-  }
-  
-  if (imageCount) {
-    matches.forEach(function (url) {
-      url = url.match(singleURLMatch)[1];
-      var resolvedURL = URL.resolve(rooturl, url);
-      if (images[url] === undefined) {
-        img2base64(resolvedURL, function (dataurl) {
-          inliner.emit('progress', 'encode ' + resolvedURL);
-          imageCount--;
-          inliner.todo--;
-          if (images[url] === undefined) images[url] = dataurl;
-          checkFinished();
-        });
-      } else {
-        imageCount--;
-        inliner.todo--;
-        checkFinished();
-      }
-    });
-  } else {
-    callback(rawCSS);
-  }
 }
 
 function removeComments(element) {
@@ -165,29 +52,30 @@ function removeComments(element) {
 
 function Inliner(url, options, callback) {
   var root = url,
-      inliner = this,
-      get = getter(this);
+      inliner = this;
   
   events.EventEmitter.call(this);
 
   if (typeof options == 'function') {
     callback = options;
-    options = defaults;
+    options = inliner.defaults;
   } else if (options === undefined) {
-    options = defaults;
+    options = inliner.defaults;
   }
+  
+  inliner.options = options;
   
   inliner.total = 1;
   inliner.todo = 1;
   inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
   
-  get(url, function (html) {
+  inliner.get(url, function (html) {
     inliner.todo--;
     inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
     
     // workaround for https://github.com/tmpvar/jsdom/issues/172
     // need to remove empty script tags as it casues jsdom to skip the env callback
-    html = html.replace(/<script(:? type=['"|].*?['"|])><\/script>/ig, '');
+    html = html.replace(/<\script(:? type=['"|].*?['"|])><\/script>/ig, '');
 
     if (!html) {
       inliner.emit('end', '');
@@ -235,7 +123,7 @@ function Inliner(url, options, callback) {
         
             // collapse the white space
             var html = window.document.innerHTML;
-            if (options.collapseWhitespace) {
+            if (inliner.options.collapseWhitespace) {
               html = html.replace(/\s+/g, ' ');
             }
             // console.log(html);
@@ -251,8 +139,7 @@ function Inliner(url, options, callback) {
         todo.images && assets.images.each(function () {
           var img = this,
               resolvedURL = URL.resolve(url, img.src);
-          img2base64(resolvedURL, function (dataurl) {
-            inliner.emit('progress', 'encode ' + resolvedURL);
+          inliner.get(resolvedURL, { encode: true }, function (dataurl) {
             if (dataurl) images[img.src] = dataurl;
             img.src = dataurl;
             breakdown.images--;
@@ -261,37 +148,11 @@ function Inliner(url, options, callback) {
           });
         });
     
-        function getImportCSS(css, callback, rooturl) {
-          var position = css.indexOf('@import');
-          if (position !== -1) {
-            var match = css.match(/@import\s*(.*)/);
-        
-            if (match !== null && match.length) {
-              var url = window.$.trim(match[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '')).split(' '); // clean up
-              // if url has a length > 1, then we have media types to target
-              var resolvedURL = URL.resolve(root, url[0]);
-              get(resolvedURL, function (importedCSS) {
-                inliner.emit('progress', 'import ' + resolvedURL);
-                if (url.length > 1) {
-                  url.shift();
-                  importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
-                }
-                css = css.replace(/@(import.*$)/, '/* $1 */\n' + importedCSS);
-                getImportCSS(css, callback);
-              });          
-            }
-          } else {
-            if (options.compressCSS) css = compressCSS(css);
-        
-            callback(css, rooturl);
-          }
-        }
-
         todo.styles && assets.styles.each(function () {
           var style = this;
-          getImportCSS(this.innerHTML, function (css, url) {
-            getImagesFromCSS(inliner, url, css, function (css) {
-              if (options.compressCSS) inliner.emit('progress', 'compress inline css');
+          inliner.getImportCSS(this.innerHTML, function (css, url) {
+            inliner.getImagesFromCSS(url, css, function (css) {
+              if (inliner.options.compressCSS) inliner.emit('progress', 'compress inline css');
               style.innerHTML = css;
 
               breakdown.styles--;
@@ -306,10 +167,10 @@ function Inliner(url, options, callback) {
           var link = this,
               linkURL = URL.resolve(url, link.href);
 
-          get(linkURL, function (css) {
-            getImagesFromCSS(inliner, linkURL, css, function (css) {
-              getImportCSS(css, function (css) {
-                if (options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
+          inliner.get(linkURL, function (css) {
+            inliner.getImagesFromCSS(linkURL, css, function (css) {
+              inliner.getImportCSS(css, linkURL, function (css) {
+                if (inliner.options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
                 breakdown.links--;
                 inliner.todo--;
 
@@ -345,7 +206,7 @@ function Inliner(url, options, callback) {
               }
 
               // don't compress already minified code
-              if(!/\bmin\b/.test(src) && !/google-analytics/.test(src)) { 
+              if(!(/\bmin\b/).test(src) && !(/google-analytics/).test(src)) { 
                 inliner.todo++;
                 inliner.total++;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
@@ -386,7 +247,7 @@ function Inliner(url, options, callback) {
             inliner.todo--;
             scriptsFinished();
           } else {
-            get(scriptURL, { not: 'text/html' }, function (data) {
+            inliner.get(scriptURL, { not: 'text/html' }, function (data) {
               if (data) $script.text(data);
               // $script.before('<!-- ' + scriptURL + ' -->');
               breakdown.scripts--;
@@ -425,6 +286,143 @@ function Inliner(url, options, callback) {
 util.inherits(Inliner, events.EventEmitter);
 
 Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
+
+Inliner.prototype.get = function (url, options, callback) {
+  var request = makeRequest(url),
+      body = '',
+      inliner = this;
+
+  if (typeof options == 'function') {
+    callback = options;
+    options = {};
+  }
+  
+  request.on('error', function (error) {
+    console.error(error.message, url);
+    callback && callback('');
+  });
+
+  request.on('response', function (res) {
+    res.on('data', function (chunk) {
+      if (res.statusCode == 200) body += chunk;
+    });
+    
+    if (options.encode) {
+      res.setEncoding('binary');
+    }
+
+    res.on('end', function () {      
+      if (res.statusCode !== 200) {
+        inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
+        body = ''; // ?
+      } else if (res.headers['location']) {
+        return inliner.get(res.headers['location'], options, callback);
+      } else {
+        if (options && options.not) {
+          if (res.headers['content-type'].indexOf(options.not) !== -1) {
+            body = '';
+          }
+        }
+
+        if (res.headers['content-encoding'] == 'gzip') {
+          // console.log('decode');
+          // body = uncompress(body);
+          // console.log(body);
+        }
+
+        if (options.encode) {
+          body = 'data:' + res.headers['content-type'] + ';base64,' + new Buffer(body, 'binary').toString('base64');
+        }
+
+        if (body && res.statusCode == 200) {
+          inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
+        }        
+      }
+      
+      return callback && callback(body);
+    });
+  }).end();
+};
+
+Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
+  var inliner = this,
+      images = {},
+      urlMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/g,
+      singleURLMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/,
+      matches = rawCSS.match(urlMatch),
+      imageCount = matches === null ? 0 : matches.length; // TODO check!
+  
+  inliner.total += imageCount;
+  inliner.todo += imageCount;
+  
+  function checkFinished() {
+    inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
+    if (imageCount < 0) {
+      console.log('something went wrong :-S');
+    } else if (imageCount == 0) {
+      callback(rawCSS.replace(urlMatch, function (m, url) {
+        return 'url(' + images[url] + ')';
+      }));
+    }
+  }
+  
+  if (imageCount) {
+    matches.forEach(function (url) {
+      url = url.match(singleURLMatch)[1];
+      var resolvedURL = URL.resolve(rooturl, url);
+      if (images[url] === undefined) {
+        inliner.get(resolvedURL, { encode: true }, function (dataurl) {
+          imageCount--;
+          inliner.todo--;
+          if (images[url] === undefined) images[url] = dataurl;
+          
+          checkFinished();
+        });
+      } else {
+        imageCount--;
+        inliner.todo--;
+        checkFinished();
+      }
+    });
+  } else {
+    callback(rawCSS);
+  }
+};
+
+Inliner.prototype.getImportCSS = function (css, rooturl, callback) {
+  if (typeof rooturl == 'function') {
+    callback = rooturl;
+    rooturl = '';
+  }
+  
+  var position = css.indexOf('@import'),
+      inliner = this;
+
+  if (position !== -1) {
+    var match = css.match(/@import\s*(.*)/);
+    
+    if (match !== null && match.length) {
+      var url = match[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '').trim().split(' '); // clean up
+      // if url has a length > 1, then we have media types to target
+      var resolvedURL = URL.resolve(rooturl, url[0]);
+      inliner.get(resolvedURL, function (importedCSS) {
+        inliner.emit('progress', 'import ' + resolvedURL);
+        if (url.length > 1) {
+          url.shift();
+          importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
+        }
+        
+        css = css.replace(match[0], importedCSS);
+        inliner.getImportCSS(css, rooturl, callback);
+      });          
+    }
+  } else {
+    if (inliner.options.compressCSS) css = compressCSS(css);
+    callback(css, rooturl);
+  }
+};
+
+Inliner.prototype.defaults = { compressCSS: true, collapseWhitespace: true };
 
 module.exports = Inliner;
 
