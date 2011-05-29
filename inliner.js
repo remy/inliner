@@ -19,6 +19,8 @@ function makeRequest(url) {
         method: 'GET'
       };
 
+  // console.error('proto: ' + oURL.protocol, url, oURL);
+
   return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
 }
 
@@ -150,7 +152,7 @@ function Inliner(url, options, callback) {
     
         todo.styles && assets.styles.each(function () {
           var style = this;
-          inliner.getImportCSS(this.innerHTML, function (css, url) {
+          inliner.getImportCSS(root, this.innerHTML, function (css, url) {
             inliner.getImagesFromCSS(url, css, function (css) {
               if (inliner.options.compressCSS) inliner.emit('progress', 'compress inline css');
               style.innerHTML = css;
@@ -169,7 +171,7 @@ function Inliner(url, options, callback) {
 
           inliner.get(linkURL, function (css) {
             inliner.getImagesFromCSS(linkURL, css, function (css) {
-              inliner.getImportCSS(css, linkURL, function (css) {
+              inliner.getImportCSS(linkURL, css, function (css) {
                 if (inliner.options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
                 breakdown.links--;
                 inliner.todo--;
@@ -389,11 +391,11 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
   }
 };
 
-Inliner.prototype.getImportCSS = function (css, rooturl, callback) {
-  if (typeof rooturl == 'function') {
-    callback = rooturl;
-    rooturl = '';
-  }
+Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
+  // if (typeof css == 'function') {
+  //   callback = css;
+  //   rooturl = '';
+  // }
   
   var position = css.indexOf('@import'),
       inliner = this;
@@ -413,7 +415,7 @@ Inliner.prototype.getImportCSS = function (css, rooturl, callback) {
         }
         
         css = css.replace(match[0], importedCSS);
-        inliner.getImportCSS(css, rooturl, callback);
+        inliner.getImportCSS(rooturl, css, callback);
       });          
     }
   } else {
