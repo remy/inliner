@@ -37,15 +37,15 @@ function getter(parent) {
       callback = rules;
       rules = {};
     }
+    
+    request.on('error', function (error) {
+      console.error(error.message, url);
+      callback && callback('');
+    });
 
     request.on('response', function (res) {
       res.on('data', function (chunk) {
         if (res.statusCode == 200) body += chunk;
-      });
-
-      res.on('error', function () {
-        console.error('err');
-        console.error(arguments);
       });
 
       res.on('end', function () {
@@ -192,7 +192,7 @@ function Inliner(url, options, callback) {
 
     if (!html) {
       inliner.emit('end', '');
-      callback && callback();
+      callback && callback('');
     } else {
       jsdom.env(html, '', [
         'http://code.jquery.com/jquery.min.js'
