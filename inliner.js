@@ -5,6 +5,7 @@ var URL = require('url'),
     jsdom = require('jsdom'),
     jsp = require('uglify-js/lib/parse-js'),
     pro = require('uglify-js/lib/process'),
+    uncompress = require('compress-buffer').uncompress,
     http = {
       http: require('http'),
       https: require('https')
@@ -16,11 +17,15 @@ function makeRequest(url) {
       options = {
         host: oURL.hostname,
         port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
-        path: oURL.pathname,
+        path: oURL.pathname + (oURL.search || ''),
         method: 'GET'
       };
       
   return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
+}
+
+function decompress(gzip, input) {
+  
 }
 
 function getter(parent) {
@@ -39,8 +44,8 @@ function getter(parent) {
       });
 
       res.on('error', function () {
-        console.log('err');
-        console.log(arguments);
+        console.error('err');
+        console.error(arguments);
       });
 
       res.on('end', function () {
@@ -52,6 +57,10 @@ function getter(parent) {
         
         if (res.headers['location']) {
           return get(res.headers['location'], rules, callback);
+        } else if (res.headers['content-encoding'] == 'gzip') {
+          // console.log('decode');
+          // body = uncompress(body);
+          // console.log(body);
         }
         
         if (body) {
@@ -82,6 +91,7 @@ function img2base64(url, callback) {
     });
     res.on('data', function (chunk) {
       if (res.statusCode == 200) body += chunk;
+      else console.log('fail on ' + url);
     });
   }).end()
 }
@@ -176,11 +186,14 @@ function Inliner(url, options, callback) {
     inliner.todo--;
     inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
     
+    // workaround for https://github.com/tmpvar/jsdom/issues/172
+    // need to remove empty script tags as it casues jsdom to skip the env callback
+    html = html.replace(/<script(:? type=['"|].*?['"|])><\/script>/ig, '');
+
     if (!html) {
       inliner.emit('end', '');
       callback && callback();
     } else {
-    
       jsdom.env(html, '', [
         'http://code.jquery.com/jquery.min.js'
       ], function(errors, window) {
@@ -249,7 +262,7 @@ function Inliner(url, options, callback) {
           });
         });
     
-        function getImportCSS(css, callback) {
+        function getImportCSS(css, callback, rooturl) {
           var position = css.indexOf('@import');
           if (position !== -1) {
             var match = css.match(/@import\s*(.*)/);
@@ -271,15 +284,14 @@ function Inliner(url, options, callback) {
           } else {
             if (options.compressCSS) css = compressCSS(css);
         
-            callback(css);
+            callback(css, rooturl);
           }
         }
 
         todo.styles && assets.styles.each(function () {
           var style = this;
-          getImagesFromCSS(inliner, url, this.innerHTML, function (css) {
-            // do one level of @import rules
-            getImportCSS(css, function (css) {
+          getImportCSS(this.innerHTML, function (css, url) {
+            getImagesFromCSS(inliner, url, css, function (css) {
               if (options.compressCSS) inliner.emit('progress', 'compress inline css');
               style.innerHTML = css;
 
@@ -419,11 +431,18 @@ module.exports = Inliner;
 
 if (!module.parent) {
   if (process.argv[2] === undefined) {
-    console.log('Usage: inliner http://yoursite.com\ninliner will output the inlined HTML, CSS, images and JavaScript');
+    console.log('Usage: inliner http://yoursite.com\ninliner [nocompress]\nThis will output the inlined HTML, CSS, images and JavaScript');
     process.exit();
   }
+  
+  (function () {
+    var options;
+    if (process.argv[3] === 'nocompress') {
+      options = { compressCSS: false, collapseWhitespace: false };
+    }
 
-  var inliner = new Inliner(process.argv[2], function (html) {
-    console.log(html);
-  });
+    var inliner = new Inliner(process.argv[2], options, function (html) {
+      console.log(html);
+    });    
+  })();
 }
