@@ -16,10 +16,10 @@ function makeRequest(url) {
       options = {
         host: oURL.hostname,
         port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
-        path: oURL.pathname + (oURL.search || ''),
+        path: (oURL.pathname || '/') + (oURL.search || ''), // note 0.5.0pre doesn't fill pathname if missing
         method: 'GET'
       };
-      
+
   return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
 }
 
