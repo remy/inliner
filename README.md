@@ -14,7 +14,7 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 
 Check out a working copy of the source code with [Git](http://git-scm.com), or install `inliner` via [npm](http://npmjs.org) (the recommended way). The latter will also install `inliner` into the system's `bin` path.
 
-    $ git clone git://github.com/rem/inliner.git
+    $ git clone https://github.com/remy/inliner.git
     $ npm install inliner -g
     
 `inliner` uses a `package.json` to describe the dependancies, and if you install via a github clone, ensure you run `npm install` from the `inliner` directory to install the dependancies (or manually install [jsdom](https://github.com/tmpvar/jsdom "tmpvar/jsdom - GitHub") and [uglify-js](https://github.com/mishoo/UglifyJS "mishoo/UglifyJS - GitHub")).
