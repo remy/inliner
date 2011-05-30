@@ -1,19 +1,73 @@
 #!/usr/bin/env node
 
-var inliner = require('../inliner');
+var path = require('path'), fs = require('fs');
 
-if (process.argv[2] === undefined) {
-  console.log('Usage: inliner http://yoursite.com\ninliner [nocompress]\nThis will output the inlined HTML, CSS, images and JavaScript');
-  process.exit();
-}
+fs.realpath(__filename, function(error, script) {
+  var servedir, root, port;
+  if (error) throw error;
 
-(function () {
-  var options;
-  if (process.argv[3] === 'nocompress') {
-    options = { compressCSS: false, collapseWhitespace: false };
+  // Load `servedir`.
+  var Inliner = require(path.join(path.dirname(script), '../inliner')),
+      usage = [
+        'usage: inliner [options] http://yoursite.com',
+        'e.g.: inliner http://localhost:8080',
+        '',
+        'Options:',
+        '  --verbose      echo on STDERR the progress of inlining',
+        '  --nocompress   don\'t compress CSS or HTML - useful for debugging',
+        '  --version      current inliner version',
+        '  --help         this usage',
+        '',
+        'For more details see http://github.com/remy/inliner/\n'
+      ].join('\n');
+    
+  if (process.argv[2] === undefined) {
+    console.log(usage);
+    process.exit();
   }
+
+  function controlArg(args, label, fn) {
+    var i;
+  
+    if ((i = args.indexOf(label)) !== -1) {
+      fn(args[i], i);
+    } else if ((i = args.indexOf('-' + label.substr(0, 1))) !== -1) {
+      fn(args[i], i);
+    } else if ((i = args.indexOf('--' + label)) !== -1) {
+      fn(args[i], i);
+    }
+  }
+
+  var options,
+      verbose = false;
+
+  controlArg(process.argv, 'help', function () {
+    console.log(usage);
+    process.exit();
+  });
+
+  controlArg(process.argv, 'version', function () {
+    console.log(Inliner.version);
+    process.exit();
+  });
+
+  controlArg(process.argv, 'nocompress', function (arg, i) {
+    process.argv.splice(i, 1);
+    options = { compressCSS: false, collapseWhitespace: false };
+  });
+
+  controlArg(process.argv, 'verbose', function (arg, i) {
+    process.argv.splice(i, 1);
+    verbose = true;
+  });
 
   var inliner = new Inliner(process.argv[2], options, function (html) {
     console.log(html);
-  });    
-})();
+  });
+
+  if (verbose) {
+    inliner.on('progress', function (event) {
+      console.error(event);
+    });
+  }
+});

@@ -20,8 +20,6 @@ function makeRequest(url) {
         method: 'GET'
       };
 
-  // console.error('proto: ' + oURL.protocol, url, oURL);
-
   return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
 }
 
@@ -53,6 +51,7 @@ function Inliner(url, options, callback) {
   var root = url,
       inliner = this;
   
+  // inherit EventEmitter so that we can send events with progress
   events.EventEmitter.call(this);
 
   if (typeof options == 'function') {
@@ -241,11 +240,11 @@ function Inliner(url, options, callback) {
           var $script = window.$(this),
               scriptURL = URL.resolve(url, this.src);
 
-          if (scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
+          if (!this.src || scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
             breakdown.scripts--;
             inliner.todo--;
             scriptsFinished();
-          } else {
+          } else if (this.src) {
             inliner.get(scriptURL, { not: 'text/html' }, function (data) {
               if (data) $script.text(data);
               // $script.before('<!-- ' + scriptURL + ' -->');
@@ -286,34 +285,63 @@ util.inherits(Inliner, events.EventEmitter);
 
 Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
 
-Inliner.prototype.get = function (url, options, callback) {
-  var request = makeRequest(url),
-      body = '',
-      inliner = this;
+Inliner.prototype.requestCache = {};
+Inliner.prototype.requestCachePending = {};
 
+Inliner.prototype.get = function (url, options, callback) {
+  // support no options being passed in
   if (typeof options == 'function') {
     callback = options;
     options = {};
   }
   
+  // if we've cached this request in the past, just return the cached content
+  if (this.requestCache[url] !== undefined) {
+    this.emit('progress', 'cached ' + url);
+    return callback && callback(this.requestCache[url]);
+  } else if (this.requestCachePending[url] !== undefined) {
+    this.requestCachePending[url].push(callback);
+    return true;
+  } else {
+    this.requestCachePending[url] = [callback];
+  }
+  
+  // otherwis continue and create a new web request
+  var request = makeRequest(url),
+      body = '',
+      inliner = this;
+
+  // this tends to occur when we can't connect to the url - i.e. target is down
+  // note that the main inliner app handles sending the error back to the client
   request.on('error', function (error) {
     console.error(error.message, url);
     callback && callback('');
   });
 
+
   request.on('response', function (res) {
     var gunzip;
-    
+
+    // if we get a gzip header, then first we attempt to load the node-compress library
+    // ...which annoyingly isn't supported anymore (maybe I should fork it...).
+    // once loaded, we set up event listeners to handle data coming in and do a little
+    // dance with the response object - which I'll explain... ==>
     if (res.headers['content-encoding'] == 'gzip') {
       if (compress === null) {
         try {
           compress = require('./node-compress/lib/compress/');
         } catch (e) {
-          console.error('Cannot request gzipped content without node-compress library - exiting');
+          console.error('Failed to load node-compress - see http://github.com/remy/inliner for install directions. \nexiting');
           process.exit();
         }
       }
       gunzip = new compress.GunzipStream();
+      
+      // the data event is triggered by writing to the gunzip object when the response
+      // receives data (yeah, further down).
+      // once all the data has finished (triggerd by the response end event), we undefine
+      // the gunzip object and re-trigger the response end event. By this point, we've
+      // decompressed the gzipped content, and it's human readable again.
       gunzip.on('data', function (chunk) {
         body += chunk;
       }).on('end', function () {
@@ -323,6 +351,7 @@ Inliner.prototype.get = function (url, options, callback) {
     }
     
     res.on('data', function (chunk) {
+      // only process data if we have a 200 ok
       if (res.statusCode == 200) {
         if (gunzip) {
           gunzip.write(chunk);
@@ -332,6 +361,7 @@ Inliner.prototype.get = function (url, options, callback) {
       }
     });
     
+    // required if we're going to base64 encode the content later on
     if (options.encode) {
       res.setEncoding('binary');
     }
@@ -353,16 +383,19 @@ Inliner.prototype.get = function (url, options, callback) {
           }
         }
         
-        if (body && res.statusCode == 200) {
-          inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
-        }        
-        
-        
         if (options.encode && res.statusCode == 200) {
           body = 'data:' + res.headers['content-type'] + ';base64,' + new Buffer(body, 'binary').toString('base64');
         }
-
-        return callback && callback(body);
+        
+        inliner.requestCache[url] = body;
+        inliner.requestCachePending[url].forEach(function (callback, i) {
+          if (i == 0 && body && res.statusCode == 200) {
+            inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
+          } else if (body) {
+            inliner.emit('progress', 'cached ' + url);
+          }
+          callback && callback(body);
+        });
       }
     });
   }).end();
