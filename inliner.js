@@ -5,6 +5,7 @@ var URL = require('url'),
     jsdom = require('jsdom'),
     jsp = require('uglify-js/lib/parse-js'),
     pro = require('uglify-js/lib/process'),
+    compress = require('./node-compress/lib/compress/'),
     http = {
       http: require('http'),
       https: require('https')
@@ -24,8 +25,29 @@ function makeRequest(url) {
   return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
 }
 
-function decompress(gzip, input) {
-  
+function decompress(input, callback) {
+  var decompressor = new compress.GunzipStream();
+  console.log(input.toString());
+  // var d1 = input.substr(0, 25);
+  // var d2 = input.substr(25);
+
+  console.log('Making decompression requests...');
+  var output = '';
+  // decompressor.setInputEncoding('binary');
+  decompressor.setEncoding('utf8');
+  decompressor.addListener('data', function(data) {
+    output += data;
+  }).addListener('error', function(err) {
+    throw err;
+  }).addListener('end', function() {
+    console.log('Decompressed length: ' + output.length);
+    console.log('Raw data: ' + output);
+    callback(output);
+  });
+  // decompressor.write(d1);
+  decompressor.write(input);
+  decompressor.close();
+  console.log('Requests done.');
 }
 
 function compressCSS(css) {
@@ -305,15 +327,37 @@ Inliner.prototype.get = function (url, options, callback) {
   });
 
   request.on('response', function (res) {
+    var gunzip;
+    
+    if (res.headers['content-encoding'] == 'gzip') {
+      gunzip = new compress.GunzipStream();
+      gunzip.on('data', function (chunk) {
+        body += chunk;
+      }).on('end', function () {
+        gunzip = undefined;
+        res.emit('end');
+      });
+    }
+    
     res.on('data', function (chunk) {
-      if (res.statusCode == 200) body += chunk;
+      if (res.statusCode == 200) {
+        if (gunzip) {
+          gunzip.write(chunk);
+        } else {
+          body += chunk;
+        }
+      }
     });
     
     if (options.encode) {
       res.setEncoding('binary');
     }
 
-    res.on('end', function () {      
+    res.on('end', function () { 
+      if (gunzip) {
+        gunzip.end();
+        return;
+      } 
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
         body = ''; // ?
@@ -325,23 +369,18 @@ Inliner.prototype.get = function (url, options, callback) {
             body = '';
           }
         }
-
-        if (res.headers['content-encoding'] == 'gzip') {
-          // console.log('decode');
-          // body = uncompress(body);
-          // console.log(body);
-        }
-
-        if (options.encode) {
-          body = 'data:' + res.headers['content-type'] + ';base64,' + new Buffer(body, 'binary').toString('base64');
-        }
-
+        
         if (body && res.statusCode == 200) {
           inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
         }        
+        
+        
+        if (options.encode && res.statusCode == 200) {
+          body = 'data:' + res.headers['content-type'] + ';base64,' + new Buffer(body, 'binary').toString('base64');
+        }
+
+        return callback && callback(body);
       }
-      
-      return callback && callback(body);
     });
   }).end();
 };
