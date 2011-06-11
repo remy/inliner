@@ -58,7 +58,7 @@ Once you've inlined the crap out of the page, add the `manifest="self.appcache"`
 
 ## Support
 
-- Collapses all white space in HTML (except inside <pre> elements)
+- Collapses all white space in HTML (except inside `<pre>` elements)
 - Strips all HTML comments
 - Pulls JavaScript and CSS inline to HTML
 - Compresses JavaScript via uglify (if not compressed already)
