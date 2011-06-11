@@ -397,6 +397,11 @@ Inliner.prototype.get = function (url, options, callback) {
 };
 
 Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
+  if (this.options.images === false) {
+    callback && callback(rawCSS);
+    return;
+  }
+  
   var inliner = this,
       images = {},
       urlMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/g,
