@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var path = require('path'), fs = require('fs'), querystring = require('querystring');
+var path = require('path'), fs = require('fs'), querystring = require('querystring'), util = require('util');
 
 fs.realpath(__filename, function(error, script) {
   var servedir, root, port;
@@ -109,13 +109,14 @@ fs.realpath(__filename, function(error, script) {
           body += chunk;
         });
         res.on('end', function () {
-          console.log(body);
+          util.print(body);
         });
       });
       request.write(data);
       request.end();      
     } else {
-      console.log(html);      
+      // using util.print because console.log evalutes sprintf commands - which we don't want to do
+      util.print(html);      
     }
   });
 

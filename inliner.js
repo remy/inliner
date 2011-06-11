@@ -515,7 +515,7 @@ if (!module.parent) {
     }
 
     var inliner = new Inliner(process.argv[2], options, function (html) {
-      console.log(html);
+      require('util').print(html);
     });    
   })();
 }
