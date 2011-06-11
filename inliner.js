@@ -191,7 +191,8 @@ function Inliner(url, options, callback) {
             assets.scripts.each(function () {
               var $script = window.$(this),
                   src = $script.attr('src'),
-                  orig_code = this.innerHTML;
+                  orig_code = this.innerHTML,
+                  final_code = '';
 
               // only remove the src if we have a script body
               if (orig_code) { 
@@ -208,12 +209,12 @@ function Inliner(url, options, callback) {
 
                   ast = pro.ast_mangle(ast); // get a new AST with mangled names
                   ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-                  var final_code = pro.gen_code(ast);
+                  final_code = pro.gen_code(ast);
 
                   // some protection against putting script tags in the body
                   final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
 
-                  window.$(this).text(final_code);              
+                  window.$(this).text(final_code);
                   if (src) {
                     inliner.emit('progress', 'compress ' + URL.resolve(root, src));
                   } else {
@@ -223,6 +224,8 @@ function Inliner(url, options, callback) {
                 }
                 inliner.todo--;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
+              } else if (orig_code) {
+                window.$(this).text(orig_code.replace(/<\/script>/gi, '<\\/script>'));
               }
             });
             finished();
