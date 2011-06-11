@@ -119,7 +119,7 @@ function Inliner(url, options, callback) {
             } else {
               html = window.document.innerHTML;
             }
-            // console.log(html);
+
             html = '<!DOCTYPE html>' + html;
             callback && callback(html);
             inliner.emit('end', html);
@@ -146,11 +146,10 @@ function Inliner(url, options, callback) {
           inliner.getImportCSS(root, this.innerHTML, function (css, url) {
             inliner.getImagesFromCSS(url, css, function (css) {
               if (inliner.options.compressCSS) inliner.emit('progress', 'compress inline css');
-              style.innerHTML = css;
+              window.$(style).text(css);
 
               breakdown.styles--;
               inliner.todo--;
-              // console.log('style finished');
               finished();
             });
           });
@@ -177,7 +176,6 @@ function Inliner(url, options, callback) {
                 }
 
                 window.$(link).replaceWith(style);
-                // console.log('link finished');
                 finished();            
               });
             });
