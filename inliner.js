@@ -38,6 +38,9 @@ function removeComments(element) {
 function Inliner(url, options, callback) {
   var root = url,
       inliner = this;
+
+  this.requestCache = {};
+  this.requestCachePending = {};
   
   // inherit EventEmitter so that we can send events with progress
   events.EventEmitter.call(this);
@@ -280,9 +283,6 @@ function Inliner(url, options, callback) {
 util.inherits(Inliner, events.EventEmitter);
 
 Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
-
-Inliner.prototype.requestCache = {};
-Inliner.prototype.requestCachePending = {};
 
 Inliner.prototype.get = function (url, options, callback) {
   // support no options being passed in
