@@ -14,41 +14,51 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 
 Check out a working copy of the source code with [Git](http://git-scm.com), or install `inliner` via [npm](http://npmjs.org) (the recommended way). The latter will also install `inliner` into the system's `bin` path.
 
-    $ git clone https://github.com/remy/inliner.git
     $ npm install inliner -g
+    
+Or
+    
+    $ git clone https://github.com/remy/inliner.git
     
 `inliner` uses a `package.json` to describe the dependancies, and if you install via a github clone, ensure you run `npm install` from the `inliner` directory to install the dependancies (or manually install [jsdom](https://github.com/tmpvar/jsdom "tmpvar/jsdom - GitHub") and [uglify-js](https://github.com/mishoo/UglifyJS "mishoo/UglifyJS - GitHub")).
 
 ## Usage
 
-### via npm
-
-If you installed via npm, then you can use inliner via the command line as per:
+If you have either installed via npm or put the inliner bin directory in your path, then you can use inliner via the command line as per:
 
     inliner http://remysharp.com
 
-This will output the inlined markup.  You can easily save this to a new file for testing:
+This will output the inlined markup with default options. You can see more options on how to disable compression or how not to base64 encode images using the help:
 
-    inliner http://remysharp.com > remysharp.html
+    inliner --help
 
-To use inline inside your script:
+To use inline inside your own script:
 
-    var inliner = require('inliner');
+    var Inliner = require('inliner');
 
-    inliner('http://remysharp.com', function (html) {
+    new Inliner('http://remysharp.com', function (html) {
       // compressed and inlined HTML page
       console.log(html);
     });
+    
+Or:
+    
+    var inliner = new Inliner('http://remysharp.com');
+    
+    inliner.on('progress', function (event) {
+      console.error(event);
+    }).on('end', function (html) {
+      // compressed and inlined HTML page
+      console.log(html);      
+    });
 
-Note that if you include the inliner script via a git submodule, it requires jsdom to be installed via `npm install jsdom`, otherwise you should be good to run.
-
-I plan to include a web service at some point, but obviously this won't be able to access localhost domains.
+Note that if you include the inliner script via a git submodule, it requires jsdom & uglifyjs to be installed via `npm install jsdom uglify-js`, otherwise you should be good to run.
 
 Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.appcache ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
 
 ## Support
 
-- Collapses all white space in HTML
+- Collapses all white space in HTML (except inside <pre> elements)
 - Strips all HTML comments
 - Pulls JavaScript and CSS inline to HTML
 - Compresses JavaScript via uglify (if not compressed already)
@@ -61,5 +71,4 @@ Once you've inlined the crap out of the page, add the `manifest="self.appcache"`
 ## Limitations / Caveats
 
 - Whitespace compression might get a little heavy handed - all whitespace is collapsed from n spaces to one space.
-- Compresses whitespace inside of `<pre>` elements
   
