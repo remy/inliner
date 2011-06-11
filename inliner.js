@@ -11,18 +11,6 @@ var URL = require('url'),
       https: require('https')
     };
 
-function makeRequest(url) {
-  var oURL = URL.parse(url),
-      options = {
-        host: oURL.hostname,
-        port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
-        path: (oURL.pathname || '/') + (oURL.search || ''), // note 0.5.0pre doesn't fill pathname if missing
-        method: 'GET'
-      };
-
-  return http[oURL.protocol.slice(0, -1) || 'http'].request(options);  
-}
-
 function compressCSS(css) {
   return css
     .replace(/\s+/g, ' ')
@@ -56,9 +44,9 @@ function Inliner(url, options, callback) {
 
   if (typeof options == 'function') {
     callback = options;
-    options = inliner.defaults;
+    options = Inliner.defaults;
   } else if (options === undefined) {
-    options = inliner.defaults;
+    options = Inliner.defaults;
   }
   
   inliner.options = options;
@@ -84,8 +72,8 @@ function Inliner(url, options, callback) {
       ], function(errors, window) {
         // remove jQuery that was included with jsdom
         window.$('script:last').remove();
-
-        var todo = { scripts: true, images: true, links: true, styles: true },
+        
+        var todo = { scripts: true, images: inliner.options.images, links: true, styles: true },
             assets = {
               scripts: window.$('script'),
               images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
@@ -102,17 +90,19 @@ function Inliner(url, options, callback) {
             breakdown[key] = assets[key].length;
             inliner.total += assets[key].length;
             inliner.todo += assets[key].length;
+          } else {
+            assets[key] = [];
           }
         }
-      
+
         inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
 
         function finished() {
-          var items = 0;
+          var items = 0,
+              html = '';
           for (var key in breakdown) {
             items += breakdown[key];
           }
-        
           inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
 
           if (items === 0) {
@@ -120,9 +110,14 @@ function Inliner(url, options, callback) {
             var els = removeComments(window.document.documentElement);
         
             // collapse the white space
-            var html = window.document.innerHTML;
             if (inliner.options.collapseWhitespace) {
-              html = html.replace(/\s+/g, ' ');
+              window.$('pre').html(function (i, html) {
+                return html.replace(/\n/g, '~~nl~~').replace(/\s/g, '~~s~~');
+              });
+              html = window.document.innerHTML;
+              html = html.replace(/\s+/g, ' ').replace(/~~nl~~/g, '\n').replace(/~~s~~/g, ' ');
+            } else {
+              html = window.document.innerHTML;
             }
             // console.log(html);
             html = '<!DOCTYPE html>' + html;
@@ -262,7 +257,7 @@ function Inliner(url, options, callback) {
             assets.scripts.length == 0) {
           finished();
         }
-
+        
         /** Inliner jobs:
          *  1. get all inline images and base64 encode
          *  2. get all external style sheets and move to inline
@@ -331,7 +326,7 @@ Inliner.prototype.get = function (url, options, callback) {
         try {
           compress = require('./node-compress/lib/compress/');
         } catch (e) {
-          console.error('Failed to load node-compress - see http://github.com/remy/inliner for install directions. \nexiting');
+          console.error(url + ' sent gzipped header\nFailed to load node-compress - see http://github.com/remy/inliner for install directions. \nexiting');
           process.exit();
         }
       }
@@ -479,7 +474,23 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   }
 };
 
-Inliner.prototype.defaults = { compressCSS: true, collapseWhitespace: true };
+Inliner.defaults = { compressCSS: true, collapseWhitespace: true, images: true };
+
+var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
+  var oURL = URL.parse(url),
+      options = {
+        host: oURL.hostname,
+        port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
+        path: (oURL.pathname || '/') + (oURL.search || ''), // note 0.5.0pre doesn't fill pathname if missing
+        method: 'GET'
+      };
+
+  for (var key in extraOptions) {
+    options[key] = extraOptions[key];
+  }
+
+  return http[oURL.protocol.slice(0, -1) || 'http'].request(options);
+};
 
 module.exports = Inliner;
 

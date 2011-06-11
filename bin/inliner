@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var path = require('path'), fs = require('fs');
+var path = require('path'), fs = require('fs'), querystring = require('querystring');
 
 fs.realpath(__filename, function(error, script) {
   var servedir, root, port;
@@ -14,55 +14,109 @@ fs.realpath(__filename, function(error, script) {
         '',
         'Options:',
         '  --verbose      echo on STDERR the progress of inlining',
+        // '  --share        save the output on jsbin.com and return a shareable url',
         '  --nocompress   don\'t compress CSS or HTML - useful for debugging',
+        '  --images       don\'t encode images - keeps files size small, but more requests',
         '  --version      current inliner version',
         '  --help         this usage',
         '',
         'For more details see http://github.com/remy/inliner/\n'
       ].join('\n');
     
-  if (process.argv[2] === undefined) {
-    console.log(usage);
-    process.exit();
-  }
-
   function controlArg(args, label, fn) {
     var i;
+    
+    var callback = function (arg, i) {
+      args.splice(i, 1);
+      fn(arg, i);
+    };
   
     if ((i = args.indexOf(label)) !== -1) {
-      fn(args[i], i);
+      callback(args[i], i);
     } else if ((i = args.indexOf('-' + label.substr(0, 1))) !== -1) {
-      fn(args[i], i);
+      callback(args[i], i);
     } else if ((i = args.indexOf('--' + label)) !== -1) {
-      fn(args[i], i);
+      callback(args[i], i);
     }
   }
 
-  var options,
-      verbose = false;
+  var options = Inliner.defaults,
+      verbose = false,
+      share = false;
 
   controlArg(process.argv, 'help', function () {
     console.log(usage);
     process.exit();
   });
 
-  controlArg(process.argv, 'version', function () {
-    console.log(Inliner.version);
-    process.exit();
+  controlArg(process.argv, 'nocompress', function (arg, i) {
+    options.compressCSS = false;
+    options.collapseWhitespace = false;
   });
 
-  controlArg(process.argv, 'nocompress', function (arg, i) {
-    process.argv.splice(i, 1);
-    options = { compressCSS: false, collapseWhitespace: false };
+  controlArg(process.argv, 'share', function (arg, i) {
+    share = true;
+    
+    // because JS Bin is a damn sight easier to debug when it's not all on one line
+    options.compressCSS = false;
+    options.collapseWhitespace = false;
   });
+  
+  controlArg(process.argv, 'images', function (arg, i) {
+    options.images = false;
+  });
+  
+  // order counts here - so verbose can also use -v
+  if (process.argv.length == 3) {
+    controlArg(process.argv, 'version', function () {
+      console.log(Inliner.prototype.version);
+      process.exit();
+    });
+  }
 
   controlArg(process.argv, 'verbose', function (arg, i) {
-    process.argv.splice(i, 1);
     verbose = true;
   });
 
-  var inliner = new Inliner(process.argv[2], options, function (html) {
-    console.log(html);
+  if (process.argv[2] === undefined) {
+    console.log(usage);
+    process.exit();
+  }
+
+  var url = process.argv[2];
+  if (url.indexOf('http') !== 0) {
+    url = 'http://' + url;
+  }
+
+  var inliner = new Inliner(url, options, function (html) {
+    if (share) {
+      // post to jsbin
+      var data = querystring.stringify({
+        html: html,
+        javascript: '',
+        format: 'plain',
+        method: 'save'
+      });
+      
+      // note: when making a POST request using node, for PHP to pick it up, the content-type is crutial - I never knew that :(
+      var request = Inliner.makeRequest('http://jsbin.com/save', { 
+        method: 'POST', 
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'content-length': data.length, 'X-Requested-With' : 'XMLHttpRequest' } 
+      });
+      request.on('response', function (res) {
+        var body = '';
+        res.on('data', function (chunk) {
+          body += chunk;
+        });
+        res.on('end', function () {
+          console.log(body);
+        });
+      });
+      request.write(data);
+      request.end();      
+    } else {
+      console.log(html);      
+    }
   });
 
   if (verbose) {
