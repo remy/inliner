@@ -40,7 +40,7 @@ fs.realpath(__filename, function(error, script) {
     }
   }
 
-  var options = Inliner.defaults,
+  var options = Inliner.defaults(),
       verbose = false,
       share = false;
 

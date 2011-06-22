@@ -47,9 +47,9 @@ function Inliner(url, options, callback) {
 
   if (typeof options == 'function') {
     callback = options;
-    options = Inliner.defaults;
+    options = Inliner.defaults();
   } else if (options === undefined) {
-    options = Inliner.defaults;
+    options = Inliner.defaults();
   }
   
   inliner.options = options;
@@ -480,7 +480,7 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   }
 };
 
-Inliner.defaults = { compressCSS: true, collapseWhitespace: true, images: true };
+Inliner.defaults = function () { return { compressCSS: true, collapseWhitespace: true, images: true }; };
 
 var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
   var oURL = URL.parse(url),
