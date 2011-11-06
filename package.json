@@ -10,8 +10,8 @@
     "web": "http://github.com/remy"
   },
   "dependencies": {
-    "jsdom": "0.2.0",
-    "uglify-js": "1.0.2"
+    "jsdom": ">=0.2.0",
+    "uglify-js": ">=1.0.2"
   },
   "repository": {
     "type": "git",
