@@ -215,18 +215,22 @@ function Inliner(url, options, callback) {
                   // some protection against putting script tags in the body
                   final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
 
-                  window.$(this).text(final_code);
+                  this.innerHTML = final_code;
                   if (src) {
                     inliner.emit('progress', 'compress ' + URL.resolve(root, src));
                   } else {
                     inliner.emit('progress', 'compress inline script');
                   }              
                 } catch (e) {
+                  // console.error(orig_code.indexOf('script>script'));
+                  // this.innerHTML = orig_code.replace(/<\/script>/gi, '<\\/script>');
+                  // console.error('exception', e);
                 }
                 inliner.todo--;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
               } else if (orig_code) {
-                window.$(this).text(orig_code.replace(/<\/script>/gi, '<\\/script>'));
+                // window.$(this).text(orig_code.replace(/<\/script>/gi, '<\\/script>'));
+                this.innerHTML = orig_code.replace(/<\/script>/gi, '<\\/script>');
               }
             });
             finished();
@@ -245,7 +249,8 @@ function Inliner(url, options, callback) {
             scriptsFinished();
           } else if (this.src) {
             inliner.get(scriptURL, { not: 'text/html' }, function (data) {
-              if (data) $script.text(data);
+              // catches an exception that was being thrown, but script escaping wasn't being caught
+              if (data) $script.text(data.replace(/<\/script>/gi, '<\\/script>'));
               // $script.before('<!-- ' + scriptURL + ' -->');
               breakdown.scripts--;
               inliner.todo--;
