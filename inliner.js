@@ -215,7 +215,9 @@ function Inliner(url, options, callback) {
                   // some protection against putting script tags in the body
                   final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
 
-                  this.innerHTML = final_code;
+                  this.innerText = final_code;
+                  // window.$(this).text(final_code);
+
                   if (src) {
                     inliner.emit('progress', 'compress ' + URL.resolve(root, src));
                   } else {
@@ -230,7 +232,7 @@ function Inliner(url, options, callback) {
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
               } else if (orig_code) {
                 // window.$(this).text(orig_code.replace(/<\/script>/gi, '<\\/script>'));
-                this.innerHTML = orig_code.replace(/<\/script>/gi, '<\\/script>');
+                this.innerText = orig_code.replace(/<\/script>/gi, '<\\/script>');
               }
             });
             finished();
