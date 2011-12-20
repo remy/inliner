@@ -9,7 +9,8 @@ var URL = require('url'),
     http = {
       http: require('http'),
       https: require('https')
-    };
+    },
+	path = require('path');
 
 function compressCSS(css) {
   return css
@@ -22,6 +23,7 @@ function compressCSS(css) {
     .replace(/; /g, ';')
     .replace(/\n+/g, '');
 }
+
 
 function removeComments(element) {
   var nodes = element.childNodes,
@@ -147,40 +149,37 @@ function Inliner(url, options, callback) {
         todo.styles && assets.styles.each(function () {
           var style = this;
           inliner.getImportCSS(root, this.innerHTML, function (css, url) {
-            inliner.getImagesFromCSS(url, css, function (css) {
               if (inliner.options.compressCSS) inliner.emit('progress', 'compress inline css');
               window.$(style).text(css);
 
               breakdown.styles--;
               inliner.todo--;
               finished();
-            });
           });
         });
 
         todo.links && assets.links.each(function () {
           var link = this,
               linkURL = URL.resolve(url, link.href);
-
+		
           inliner.get(linkURL, function (css) {
-            inliner.getImagesFromCSS(linkURL, css, function (css) {
-              inliner.getImportCSS(linkURL, css, function (css) {
-                if (inliner.options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
-                breakdown.links--;
-                inliner.todo--;
+			inliner.getImportCSS(path.dirname(linkURL)+'/', css, function (compressedCSS) {
+				
+               	 if (inliner.options.compressCSS) inliner.emit('progress', 'compress ' + linkURL);
+	             breakdown.links--;
+	             inliner.todo--;
 
-                var style = '',
-                    media = link.getAttribute('media');
-            
-                if (media) {
-                  style = '<style>@media ' + media + '{' + css + '}</style>';
-                } else {
-                  style = '<style>' + css + '</style>';
-                }
+	             var style = '',
+	                 media = link.getAttribute('media');
+       
+	             if (media) {
+	               style = '<style>@media ' + media + '{' + compressedCSS + '}</style>';
+	             } else {
+	               style = '<style>' + compressedCSS + '</style>';
+	             }
 
-                window.$(link).replaceWith(style);
-                finished();            
-              });
+	             window.$(link).replaceWith(style);
+	             finished();            
             });
           });
         });
@@ -209,7 +208,7 @@ function Inliner(url, options, callback) {
                   var ast = jsp.parse(orig_code); // parse code and get the initial AST
 
                   ast = pro.ast_mangle(ast); // get a new AST with mangled names
-                  ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
+                  ast = pro.ast_squeeze(ast); // get an AST with compression optimizations				
                   final_code = pro.gen_code(ast);
 
                   // some protection against putting script tags in the body
@@ -279,7 +278,7 @@ function Inliner(url, options, callback) {
          *  7. compress HTML (/>\s+</g, '> <');
          * 
          *  FUTURE ITEMS:
-         *  - support for @import
+         *  - Remove Javascript comments?
          *  - javascript validation - i.e. not throwing errors
          */
       });
@@ -320,7 +319,6 @@ Inliner.prototype.get = function (url, options, callback) {
     console.error(error.message, url);
     callback && callback('');
   });
-
 
   request.on('response', function (res) {
     var gunzip;
@@ -404,7 +402,11 @@ Inliner.prototype.get = function (url, options, callback) {
   }).end();
 };
 
+/** 
+* Converts all images into inline "data" urls.
+*/
 Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
+  
   if (this.options.images === false) {
     callback && callback(rawCSS);
     return;
@@ -416,7 +418,7 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
       singleURLMatch = /url\(\s*(?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\s*\)/,
       matches = rawCSS.match(urlMatch),
       imageCount = matches === null ? 0 : matches.length; // TODO check!
-  
+
   inliner.total += imageCount;
   inliner.todo += imageCount;
   
@@ -426,6 +428,7 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
       console.log('something went wrong :-S');
     } else if (imageCount == 0) {
       callback(rawCSS.replace(urlMatch, function (m, url) {
+		
         return 'url(' + images[url] + ')';
       }));
     }
@@ -433,9 +436,12 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
   
   if (imageCount) {
     matches.forEach(function (url) {
+
       url = url.match(singleURLMatch)[1];
+
       var resolvedURL = URL.resolve(rooturl, url);
       if (images[url] === undefined) {
+
         inliner.get(resolvedURL, { encode: true }, function (dataurl) {
           imageCount--;
           inliner.todo--;
@@ -453,38 +459,74 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
     callback(rawCSS);
   }
 };
-
+/**
+* This method recursively expands all the @imports in every CSS file included. It also inlines the images.
+* We do a simple recursive descent of the import statements. 
+*/
 Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   // if (typeof css == 'function') {
   //   callback = css;
   //   rooturl = '';
   // }
+
   
   var position = css.indexOf('@import'),
       inliner = this;
 
-  if (position !== -1) {
-    var match = css.match(/@import\s*(.*)/);
-    
-    if (match !== null && match.length) {
-      var url = match[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '').trim().split(' '); // clean up
-      // if url has a length > 1, then we have media types to target
-      var resolvedURL = URL.resolve(rooturl, url[0]);
-      inliner.get(resolvedURL, function (importedCSS) {
-        inliner.emit('progress', 'import ' + resolvedURL);
-        if (url.length > 1) {
-          url.shift();
-          importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
-        }
-        
-        css = css.replace(match[0], importedCSS);
-        inliner.getImportCSS(rooturl, css, callback);
-      });          
-    }
-  } else {
-    if (inliner.options.compressCSS) css = compressCSS(css);
-    callback(css, rooturl);
-  }
+
+  //inline all images..
+  inliner.getImagesFromCSS(rooturl, css, function(css) {
+
+		if (position !== -1) {
+		    var importRefs = css.match(/@import\s*(.*)/g),
+				  refIndex = 0;
+					
+			importRefs.forEach(function(importRef) {
+				importRef = importRef.match(/@import\s*(.*)/); //instead of global match, get array of capture groups..
+						
+				if (importRef !== null && importRef.length) {
+			      var url = importRef[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '').trim().split(' '); // clean up
+
+			      // if url has a length > 1, then we have media types to target
+				  //resolve relative to current file..
+			      var resolvedURL = URL.resolve(rooturl, url[0]);
+			
+			      inliner.get(resolvedURL, function (importedCSS) {
+				
+			        inliner.emit('progress', 'import ' + resolvedURL);
+			        if (url.length > 1) {
+			          url.shift();
+			          importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
+			        }
+
+					//continue to recursviely replace @imports relative to current file and pass in the new url.
+					//it will then generate the appropriate subcss
+			        inliner.getImportCSS(path.dirname(resolvedURL)+'/', importedCSS, function(finalCSS, rooturl) {
+						refIndex++;
+						css = css.replace(importRef[0], finalCSS); //substitute for import statement (does not change global css)
+						
+						//last item?
+						if (refIndex == importRefs.length) {
+							
+							//only compress when there are no more @imports
+							if (inliner.options.compressCSS) css = compressCSS(css);
+							
+							//only callback once all css has been processed..
+							callback(css, rooturl);
+						}
+					});
+			      });          
+			    }
+			});
+		} else {
+			//compress (we may not have any imports)
+			if (inliner.options.compressCSS) css = compressCSS(css);
+			
+			//nothing to do besides inline images (which we've done..)
+			callback(css, rooturl);
+		}
+	});
+  
 };
 
 Inliner.defaults = function () { return { compressCSS: true, collapseWhitespace: true, images: true }; };
