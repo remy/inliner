@@ -1,10 +1,14 @@
 var URL = require('url'),
     util = require('util'),
+    jsmin = require('./jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
+    fs = require('fs'),
+    path = require('path'),
     jsdom = require('jsdom'),
-    jsp = require('uglify-js/lib/parse-js'),
-    pro = require('uglify-js/lib/process'),
+    uglifyjs = require('uglify-js'),
+    jsp = uglifyjs.parser,
+    pro = uglifyjs.uglify,
     compress = null, // import only when required - might make the command line tool easier to use
     http = {
       http: require('http'),
@@ -111,11 +115,14 @@ function Inliner(url, options, callback) {
           if (items === 0) {
             // manually remove the comments
             var els = removeComments(window.document.documentElement);
-        
             // collapse the white space
             if (inliner.options.collapseWhitespace) {
+              // TODO put white space helper back in
               window.$('pre').html(function (i, html) {
-                return html.replace(/\n/g, '~~nl~~').replace(/\s/g, '~~s~~');
+                return html.replace(/\n/g, '~~nl~~'); //.replace(/\s/g, '~~s~~');
+              });
+              window.$('textarea').val(function (i, v) {
+                return v.replace(/\n/g, '~~nl~~').replace(/\s/g, '~~s~~');
               });
               html = window.document.innerHTML;
               html = html.replace(/\s+/g, ' ').replace(/~~nl~~/g, '\n').replace(/~~s~~/g, ' ');
@@ -179,7 +186,7 @@ function Inliner(url, options, callback) {
                 }
 
                 window.$(link).replaceWith(style);
-                finished();            
+                finished();
               });
             });
           });
@@ -192,7 +199,10 @@ function Inliner(url, options, callback) {
             assets.scripts.each(function () {
               var $script = window.$(this),
                   src = $script.attr('src'),
-                  orig_code = this.innerHTML,
+                  // note: not using .innerHTML as this coerses & => &amp;
+                  orig_code = this.firstChild.nodeValue
+                                  .replace(/<\/script>/gi, '<\\/script>'),
+                                  // .replace(/\/\/.*\n/gi, ''),
                   final_code = '';
 
               // only remove the src if we have a script body
@@ -213,26 +223,25 @@ function Inliner(url, options, callback) {
                   final_code = pro.gen_code(ast);
 
                   // some protection against putting script tags in the body
-                  final_code = final_code.replace(/<\/script>/gi, '<\\/script>');
-
-                  this.innerText = final_code;
-                  // window.$(this).text(final_code);
+                  window.$(this).text(final_code).append('\n');
 
                   if (src) {
                     inliner.emit('progress', 'compress ' + URL.resolve(root, src));
                   } else {
                     inliner.emit('progress', 'compress inline script');
-                  }              
+                  }
                 } catch (e) {
                   // console.error(orig_code.indexOf('script>script'));
-                  // this.innerHTML = orig_code.replace(/<\/script>/gi, '<\\/script>');
-                  // console.error('exception', e);
+                  // window.$(this).html(jsmin('', orig_code, 2));
+                  console.error('exception on ', src);
+                  console.error('exception in ' + src + ': ' + e.message);
+                  console.error('>>>>>> ' + orig_code.split('\n')[e.line - 1]);
                 }
                 inliner.todo--;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
               } else if (orig_code) {
-                // window.$(this).text(orig_code.replace(/<\/script>/gi, '<\\/script>'));
-                this.innerText = orig_code.replace(/<\/script>/gi, '<\\/script>');
+                window.$(this).text(orig_code);
+                // this.innerText = orig_code;
               }
             });
             finished();
@@ -252,7 +261,7 @@ function Inliner(url, options, callback) {
           } else if (this.src) {
             inliner.get(scriptURL, { not: 'text/html' }, function (data) {
               // catches an exception that was being thrown, but script escaping wasn't being caught
-              if (data) $script.text(data.replace(/<\/script>/gi, '<\\/script>'));
+              if (data) $script.text(data.replace(/<\/script>/gi, '<\\/script>')); //.replace(/\/\/.*$\n/g, ''));
               // $script.before('<!-- ' + scriptURL + ' -->');
               breakdown.scripts--;
               inliner.todo--;
@@ -289,7 +298,7 @@ function Inliner(url, options, callback) {
 
 util.inherits(Inliner, events.EventEmitter);
 
-Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
+Inliner.version = Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
 
 Inliner.prototype.get = function (url, options, callback) {
   // support no options being passed in
@@ -308,11 +317,30 @@ Inliner.prototype.get = function (url, options, callback) {
   } else {
     this.requestCachePending[url] = [callback];
   }
+
+  var inliner = this;
+
+  // TODO remove the sync
+  if (path.existsSync(url)) {
+    // then we're dealing with a file
+    fs.readFile(url, 'utf8', function (err, body) {
+      inliner.requestCache[url] = body;
+      inliner.requestCachePending[url].forEach(function (callback, i) {
+        if (i == 0 && body) {
+          inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
+        } else if (body) {
+          inliner.emit('progress', 'cached ' + url);
+        }
+        callback && callback(body);
+      });
+    });
+    
+    return;
+  }
   
   // otherwis continue and create a new web request
   var request = makeRequest(url),
-      body = '',
-      inliner = this;
+      body = '';
 
   // this tends to occur when we can't connect to the url - i.e. target is down
   // note that the main inliner app handles sending the error back to the client
@@ -330,6 +358,7 @@ Inliner.prototype.get = function (url, options, callback) {
     // once loaded, we set up event listeners to handle data coming in and do a little
     // dance with the response object - which I'll explain... ==>
     if (res.headers['content-encoding'] == 'gzip') {
+      console.error('loading gzip library');
       if (compress === null) {
         try {
           compress = require('./node-compress/lib/compress/');
@@ -374,6 +403,7 @@ Inliner.prototype.get = function (url, options, callback) {
         gunzip.end();
         return;
       } 
+
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
         body = ''; // ?
@@ -508,19 +538,7 @@ var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
 module.exports = Inliner;
 
 if (!module.parent) {
-  if (process.argv[2] === undefined) {
-    console.log('Usage: inliner http://yoursite.com\ninliner [nocompress]\nThis will output the inlined HTML, CSS, images and JavaScript');
-    process.exit();
-  }
-  
-  (function () {
-    var options;
-    if (process.argv[3] === 'nocompress') {
-      options = { compressCSS: false, collapseWhitespace: false };
-    }
-
-    var inliner = new Inliner(process.argv[2], options, function (html) {
-      require('util').print(html);
-    });    
-  })();
+  // if this module isn't being included in a larger app, defer to the 
+  // bin/inliner for the help options
+  require('./bin/inliner');
 }

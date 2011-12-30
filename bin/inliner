@@ -1,90 +1,70 @@
 #!/usr/bin/env node
 
-var path = require('path'), fs = require('fs'), querystring = require('querystring'), util = require('util');
+var path = require('path'), 
+    fs = require('fs'), 
+    querystring = require('querystring'), 
+    util = require('util');
 
 fs.realpath(__filename, function(error, script) {
   var servedir, root, port;
   if (error) throw error;
 
-  // Load `servedir`.
   var Inliner = require(path.join(path.dirname(script), '../inliner')),
-      usage = [
-        'usage: inliner [options] http://yoursite.com',
-        'e.g.: inliner http://localhost:8080',
-        '',
-        'Options:',
-        '  --verbose      echo on STDERR the progress of inlining',
-        // '  --share        save the output on jsbin.com and return a shareable url',
-        '  --nocompress   don\'t compress CSS or HTML - useful for debugging',
-        '  --images       don\'t encode images - keeps files size small, but more requests',
-        '  --version      current inliner version',
-        '  --help         this usage',
-        '',
-        'For more details see http://github.com/remy/inliner/\n'
-      ].join('\n');
-    
-  function controlArg(args, label, fn) {
-    var i;
-    
-    var callback = function (arg, i) {
-      args.splice(i, 1);
-      fn(arg, i);
-    };
-  
-    if ((i = args.indexOf(label)) !== -1) {
-      callback(args[i], i);
-    } else if ((i = args.indexOf('-' + label.substr(0, 1))) !== -1) {
-      callback(args[i], i);
-    } else if ((i = args.indexOf('--' + label)) !== -1) {
-      callback(args[i], i);
-    }
-  }
+      program = require('commander');
+
+  program
+    .version(Inliner.version)
+    .usage('[options] http://yoursite.com')
+    .option('-v, --verbose', 'echo on STDERR the progress of inlining')
+    .option('-n, --nocompress', "don't compress CSS or HTML - useful for debugging")
+    .option('-i, --images', "don't encode images - keeps files size small, but more requests")
+    //.option('-s, --share', "create jsbin.com url for HTML page")
+    //.option('-h, --help', "help - you're looking at it");
+
+  program.on('--help', function () {
+    console.log('  Examples:');
+    console.log('');
+    console.log('    $ inliner -v http://twitter.com > twitter.html');
+    console.log('    $ inliner -ni http://twitter.com > twitter.html');
+    console.log('');
+    console.log('  For more details see http://github.com/remy/inliner/');
+    console.log('');
+  });
+
+  program.parse(process.argv);
 
   var options = Inliner.defaults(),
       verbose = false,
       share = false;
 
-  controlArg(process.argv, 'help', function () {
-    console.log(usage);
-    process.exit();
-  });
-
-  controlArg(process.argv, 'nocompress', function (arg, i) {
+  if (program.nocompress) {
     options.compressCSS = false;
     options.collapseWhitespace = false;
-  });
+  }
 
-  controlArg(process.argv, 'share', function (arg, i) {
+  if (program.share) {
     share = true;
-    
+
     // because JS Bin is a damn sight easier to debug when it's not all on one line
     options.compressCSS = false;
     options.collapseWhitespace = false;
-  });
-  
-  controlArg(process.argv, 'images', function (arg, i) {
-    options.images = false;
-  });
-  
-  // order counts here - so verbose can also use -v
-  if (process.argv.length == 3) {
-    controlArg(process.argv, 'version', function () {
-      console.log(Inliner.prototype.version);
-      process.exit();
-    });
   }
 
-  controlArg(process.argv, 'verbose', function (arg, i) {
-    verbose = true;
-  });
+  options.images = !program.images;
+  verbose = program.verbose;
 
-  if (process.argv[2] === undefined) {
-    console.log(usage);
-    process.exit();
+  if (program.args.length == 0) {
+    // ripped out of commander.js - should really be process.usage()
+    process.stdout.write(program.helpInformation());
+    program.emit('--help');
+    process.exit(0);
   }
 
-  var url = process.argv[2];
-  if (url.indexOf('http') !== 0) {
+  var url = program.args[0];
+
+  if (path.existsSync(url)) {
+    // then it's a file
+  } else if (url.indexOf('http') !== 0) {
     url = 'http://' + url;
   }
 
@@ -113,10 +93,10 @@ fs.realpath(__filename, function(error, script) {
         });
       });
       request.write(data);
-      request.end();      
+      request.end();
     } else {
       // using util.print because console.log evalutes sprintf commands - which we don't want to do
-      util.print(html);      
+      util.print(html);
     }
   });
 
