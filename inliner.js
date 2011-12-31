@@ -28,6 +28,7 @@ function compressCSS(css) {
 }
 
 function removeComments(element) {
+  if (!element || !element.childNodes) return;
   var nodes = element.childNodes,
       i = nodes.length;
   
