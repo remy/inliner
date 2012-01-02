@@ -62,6 +62,10 @@ function Inliner(url, options, callback) {
   inliner.total = 1;
   inliner.todo = 1;
   inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
+
+  inliner.on('error', function (data) {
+    console.error(data + ' :: ' + url);
+  });
   
   inliner.get(url, function (html) {
     inliner.todo--;
@@ -75,6 +79,9 @@ function Inliner(url, options, callback) {
       inliner.emit('end', '');
       callback && callback('');
     } else {
+      // BIG ASS PROTECTIVE TRY/CATCH - mostly because of this: https://github.com/tmpvar/jsdom/issues/319
+      try { 
+
       jsdom.env(html, '', [
         'http://code.jquery.com/jquery.min.js'
       ], function(errors, window) {
@@ -198,12 +205,18 @@ function Inliner(url, options, callback) {
           if (breakdown.scripts == 0) {
             // now compress the source JavaScript
             assets.scripts.each(function () {
+              if (this.innerHTML.trim().length == 0) {
+                // this is an empty script, so throw it away
+                inliner.todo--;
+                inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
+                return;
+              }
+
               var $script = window.$(this),
                   src = $script.attr('src'),
                   // note: not using .innerHTML as this coerses & => &amp;
                   orig_code = this.firstChild.nodeValue
                                   .replace(/<\/script>/gi, '<\\/script>'),
-                                  // .replace(/\/\/.*\n/gi, ''),
                   final_code = '';
 
               // only remove the src if we have a script body
@@ -293,6 +306,10 @@ function Inliner(url, options, callback) {
          *  - javascript validation - i.e. not throwing errors
          */
       });
+
+      } catch (e) {
+        inliner.emit('error', 'Fatal error parsing HTML - exiting');
+      }
     }
   });
 }
