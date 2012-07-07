@@ -339,7 +339,7 @@ Inliner.prototype.get = function (url, options, callback) {
   var inliner = this;
 
   // TODO remove the sync
-  if (path.existsSync(url)) {
+  if (fs.existsSync(url)) {
     // then we're dealing with a file
     fs.readFile(url, 'utf8', function (err, body) {
       inliner.requestCache[url] = body;
