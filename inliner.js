@@ -90,7 +90,7 @@ function Inliner(url, options, callback) {
         
         var todo = { scripts: true, images: inliner.options.images, links: true, styles: true },
             assets = {
-              scripts: window.$('script'),
+              scripts: window.$('script').filter(function(){ return this.src != null; }),
               images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
               links: window.$('link[rel=stylesheet]'),
               styles: window.$('style')
