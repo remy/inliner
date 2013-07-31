@@ -82,7 +82,7 @@ function Inliner(url, options, callback) {
       // BIG ASS PROTECTIVE TRY/CATCH - mostly because of this: https://github.com/tmpvar/jsdom/issues/319
       try { 
 
-      jsdom.env(html, '', [
+      jsdom.env(html, [
         'http://code.jquery.com/jquery.min.js'
       ], function(errors, window) {
         // remove jQuery that was included with jsdom
