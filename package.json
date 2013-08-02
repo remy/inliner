@@ -1,10 +1,16 @@
 {
   "name": "inliner",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Utility to inline images, CSS and JavaScript for a web page - useful for mobile sites",
   "homepage": "http://github.com/remy/inliner",
   "main": "inliner",
-  "keywords": ["mobile", "inline", "production", "build", "minify"],
+  "keywords": [
+    "mobile",
+    "inline",
+    "production",
+    "build",
+    "minify"
+  ],
   "author": {
     "name": "Remy Sharp",
     "web": "http://github.com/remy"
