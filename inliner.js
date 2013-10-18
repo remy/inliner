@@ -1,6 +1,5 @@
 var URL = require('url'),
     util = require('util'),
-    jsmin = require('./jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
@@ -246,8 +245,6 @@ function Inliner(url, options, callback) {
                     inliner.emit('progress', 'compress inline script');
                   }
                 } catch (e) {
-                  // console.error(orig_code.indexOf('script>script'));
-                  // window.$(this).html(jsmin('', orig_code, 2));
                   console.error('exception on ', src);
                   console.error('exception in ' + src + ': ' + e.message);
                   console.error('>>>>>> ' + orig_code.split('\n')[e.line - 1]);
