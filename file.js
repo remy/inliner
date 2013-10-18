@@ -11,7 +11,6 @@ module.exports.request = function(options) {
   var response = new EventEmitter();
   response.headers = {};
   response.headers['content-type'] = '';
-  console.error(options.path);
   fs.readFile(options.path, function(err, data){
     if(err) {
       response.statusCode = 404;
