@@ -11,9 +11,14 @@ module.exports.request = function(options) {
   var response = new EventEmitter();
   response.headers = {};
   response.headers['content-type'] = '';
+  response.setEncoding = function(){};
+  //uri parser seems to leave a trailing ?
+  if(options.path.slice(-1) == '?') {
+    options.path = options.path.slice(0, options.path.length-1);
+  }
   fs.readFile(options.path, function(err, data){
     if(err) {
-      response.statusCode = 404;
+      console.error(options);
       ret.emit('error', err);
     } else {
       response.statusCode = 200;
