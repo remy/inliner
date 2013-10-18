@@ -1,6 +1,5 @@
 var URL = require('url'),
     util = require('util'),
-    jsmin = require('./jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
@@ -12,7 +11,8 @@ var URL = require('url'),
     compress = null, // import only when required - might make the command line tool easier to use
     http = {
       http: require('http'),
-      https: require('https')
+      https: require('https'),
+      file: require('./file')
     };
 
 function compressCSS(css) {
@@ -31,7 +31,7 @@ function removeComments(element) {
   if (!element || !element.childNodes) return;
   var nodes = element.childNodes,
       i = nodes.length;
-  
+
   while (i--) {
     if (nodes[i].nodeName === '#comment' && nodes[i].nodeValue.indexOf('[') !== 0) {
       element.removeChild(nodes[i]);
@@ -46,7 +46,7 @@ function Inliner(url, options, callback) {
 
   this.requestCache = {};
   this.requestCachePending = {};
-  
+
   // inherit EventEmitter so that we can send events with progress
   events.EventEmitter.call(this);
 
@@ -56,9 +56,9 @@ function Inliner(url, options, callback) {
   } else if (options === undefined) {
     options = Inliner.defaults();
   }
-  
+
   inliner.options = options;
-  
+
   inliner.total = 1;
   inliner.todo = 1;
   inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
@@ -66,11 +66,11 @@ function Inliner(url, options, callback) {
   inliner.on('error', function (data) {
     console.error(data + ' :: ' + url);
   });
-  
+
   inliner.get(url, function (html) {
     inliner.todo--;
     inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
-    
+
     // workaround for https://github.com/tmpvar/jsdom/issues/172
     // need to remove empty script tags as it casues jsdom to skip the env callback
     html = html.replace(/<\script(:? type=['"|].*?['"|])><\/script>/ig, '');
@@ -80,14 +80,14 @@ function Inliner(url, options, callback) {
       callback && callback('');
     } else {
       // BIG ASS PROTECTIVE TRY/CATCH - mostly because of this: https://github.com/tmpvar/jsdom/issues/319
-      try { 
+      try {
 
       jsdom.env(html, [
-        'http://code.jquery.com/jquery.min.js'
+        path.join(__dirname, 'jquery.min.js')
       ], function(errors, window) {
         // remove jQuery that was included with jsdom
         window.$('script:last').remove();
-        
+
         var todo = { scripts: true, images: inliner.options.images, links: true, styles: true },
             assets = {
               scripts: window.$('script'),
@@ -97,7 +97,7 @@ function Inliner(url, options, callback) {
             },
             breakdown = {},
             images = {};
-          
+
         inliner.total = 1;
 
         for (var key in todo) {
@@ -144,7 +144,7 @@ function Inliner(url, options, callback) {
           } else if (items < 0) {
             console.log('something went wrong on finish');
             console.dir(breakdown);
-          } 
+          }
         }
 
         todo.images && assets.images.each(function () {
@@ -158,7 +158,7 @@ function Inliner(url, options, callback) {
             finished();
           });
         });
-    
+
         todo.styles && assets.styles.each(function () {
           var style = this;
           inliner.getImportCSS(root, this.innerHTML, function (css, url) {
@@ -186,7 +186,7 @@ function Inliner(url, options, callback) {
 
                 var style = '',
                     media = link.getAttribute('media');
-            
+
                 if (media) {
                   style = '<style>@media ' + media + '{' + css + '}</style>';
                 } else {
@@ -220,12 +220,12 @@ function Inliner(url, options, callback) {
                   final_code = '';
 
               // only remove the src if we have a script body
-              if (orig_code) { 
+              if (orig_code) {
                 $script.removeAttr('src');
               }
 
               // don't compress already minified code
-              if(!(/\bmin\b/).test(src) && !(/google-analytics/).test(src)) { 
+              if(!(/\bmin\b/).test(src) && !(/google-analytics/).test(src)) {
                 inliner.todo++;
                 inliner.total++;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
@@ -245,8 +245,6 @@ function Inliner(url, options, callback) {
                     inliner.emit('progress', 'compress inline script');
                   }
                 } catch (e) {
-                  // console.error(orig_code.indexOf('script>script'));
-                  // window.$(this).html(jsmin('', orig_code, 2));
                   console.error('exception on ', src);
                   console.error('exception in ' + src + ': ' + e.message);
                   console.error('>>>>>> ' + orig_code.split('\n')[e.line - 1]);
@@ -263,7 +261,7 @@ function Inliner(url, options, callback) {
         }
 
         // basically this is the jQuery instance we tacked on to the request,
-        // but we're just being extra sure before we do zap it out  
+        // but we're just being extra sure before we do zap it out
         todo.scripts && assets.scripts.each(function () {
           var $script = window.$(this),
               scriptURL = URL.resolve(url, this.src);
@@ -280,18 +278,18 @@ function Inliner(url, options, callback) {
               breakdown.scripts--;
               inliner.todo--;
               scriptsFinished();
-            });      
+            });
           }
         });
 
         // edge case - if there's no images, nor scripts, nor links - we call finished manually
-        if (assets.links.length == 0 && 
-            assets.styles.length == 0 && 
-            assets.images.length == 0 && 
+        if (assets.links.length == 0 &&
+            assets.styles.length == 0 &&
+            assets.images.length == 0 &&
             assets.scripts.length == 0) {
           finished();
         }
-        
+
         /** Inliner jobs:
          *  1. get all inline images and base64 encode
          *  2. get all external style sheets and move to inline
@@ -300,7 +298,7 @@ function Inliner(url, options, callback) {
          *  5. compress JavaScript
          *  6. compress CSS & support media queries
          *  7. compress HTML (/>\s+</g, '> <');
-         * 
+         *
          *  FUTURE ITEMS:
          *  - support for @import
          *  - javascript validation - i.e. not throwing errors
@@ -324,7 +322,7 @@ Inliner.prototype.get = function (url, options, callback) {
     callback = options;
     options = {};
   }
-  
+
   // if we've cached this request in the past, just return the cached content
   if (this.requestCache[url] !== undefined) {
     this.emit('progress', 'cached ' + url);
@@ -352,10 +350,10 @@ Inliner.prototype.get = function (url, options, callback) {
         callback && callback(body);
       });
     });
-    
+
     return;
   }
-  
+
   // otherwis continue and create a new web request
   var request = makeRequest(url),
       body = '';
@@ -386,7 +384,7 @@ Inliner.prototype.get = function (url, options, callback) {
         }
       }
       gunzip = new compress.GunzipStream();
-      
+
       // the data event is triggered by writing to the gunzip object when the response
       // receives data (yeah, further down).
       // once all the data has finished (triggerd by the response end event), we undefine
@@ -399,7 +397,7 @@ Inliner.prototype.get = function (url, options, callback) {
         res.emit('end');
       });
     }
-    
+
     res.on('data', function (chunk) {
       // only process data if we have a 200 ok
       if (res.statusCode == 200) {
@@ -410,17 +408,17 @@ Inliner.prototype.get = function (url, options, callback) {
         }
       }
     });
-    
+
     // required if we're going to base64 encode the content later on
     if (options.encode) {
       res.setEncoding('binary');
     }
 
-    res.on('end', function () { 
+    res.on('end', function () {
       if (gunzip) {
         gunzip.end();
         return;
-      } 
+      }
 
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
@@ -433,11 +431,11 @@ Inliner.prototype.get = function (url, options, callback) {
             body = '';
           }
         }
-        
+
         if (options.encode && res.statusCode == 200) {
           body = 'data:' + res.headers['content-type'] + ';base64,' + new Buffer(body, 'binary').toString('base64');
         }
-        
+
         inliner.requestCache[url] = body;
         inliner.requestCachePending[url].forEach(function (callback, i) {
           if (i == 0 && body && res.statusCode == 200) {
@@ -457,17 +455,17 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
     callback && callback(rawCSS);
     return;
   }
-  
+
   var inliner = this,
       images = {},
       urlMatch = /url\((?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\)/g,
       singleURLMatch = /url\(\s*(?:['"]*)(?!['"]*data:)(.*?)(?:['"]*)\s*\)/,
       matches = rawCSS.match(urlMatch),
       imageCount = matches === null ? 0 : matches.length; // TODO check!
-  
+
   inliner.total += imageCount;
   inliner.todo += imageCount;
-  
+
   function checkFinished() {
     inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
     if (imageCount < 0) {
@@ -478,7 +476,7 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
       }));
     }
   }
-  
+
   if (imageCount) {
     matches.forEach(function (url) {
       url = url.match(singleURLMatch)[1];
@@ -488,7 +486,7 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
           imageCount--;
           inliner.todo--;
           if (images[url] === undefined) images[url] = dataurl;
-          
+
           checkFinished();
         });
       } else {
@@ -507,13 +505,13 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   //   callback = css;
   //   rooturl = '';
   // }
-  
+
   var position = css.indexOf('@import'),
       inliner = this;
 
   if (position !== -1) {
     var match = css.match(/@import\s*(.*)/);
-    
+
     if (match !== null && match.length) {
       var url = match[1].replace(/url/, '').replace(/['}"]/g, '').replace(/;/, '').trim().split(' '); // clean up
       // if url has a length > 1, then we have media types to target
@@ -524,10 +522,10 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
           url.shift();
           importedCSS = '@media ' + url.join(' ') + '{' + importedCSS + '}';
         }
-        
+
         css = css.replace(match[0], importedCSS);
         inliner.getImportCSS(rooturl, css, callback);
-      });          
+      });
     }
   } else {
     if (inliner.options.compressCSS) css = compressCSS(css);
@@ -556,7 +554,7 @@ var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
 module.exports = Inliner;
 
 if (!module.parent) {
-  // if this module isn't being included in a larger app, defer to the 
+  // if this module isn't being included in a larger app, defer to the
   // bin/inliner for the help options
   require('./bin/inliner');
 }
