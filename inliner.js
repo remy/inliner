@@ -84,7 +84,9 @@ function Inliner(url, options, callback) {
 
       jsdom.env(html, [
         'http://code.jquery.com/jquery.min.js'
-      ], function(errors, window) {
+      ], {
+        url: url
+      }, function(errors, window) {
         // remove jQuery that was included with jsdom
         window.$('script:last').remove();
         
