@@ -72,3 +72,6 @@ Once you've inlined the crap out of the page, add the `manifest="self.appcache"`
 
 - Whitespace compression might get a little heavy handed - all whitespace is collapsed from n spaces to one space.
   
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Munter/inliner/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
