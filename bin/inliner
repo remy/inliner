@@ -78,7 +78,7 @@ fs.realpath(__filename, function(error, script) {
         method: 'save'
       });
       
-      // note: when making a POST request using node, for PHP to pick it up, the content-type is crutial - I never knew that :(
+      // note: when making a POST request using node, for PHP to pick it up, the content-type is crucial - I never knew that :(
       var request = Inliner.makeRequest('http://jsbin.com/save', { 
         method: 'POST', 
         headers: { 'content-type': 'application/x-www-form-urlencoded', 'content-length': data.length, 'X-Requested-With' : 'XMLHttpRequest' } 
