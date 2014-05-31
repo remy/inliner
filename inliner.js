@@ -268,7 +268,7 @@ function Inliner(url, options, callback) {
         // but we're just being extra sure before we do zap it out  
         todo.scripts && assets.scripts.each(function () {
           var $script = window.$(this),
-              scriptURL = URL.resolve(url, this.src);
+              scriptURL = URL.resolve(url, (this.src||"").toString());
 
           if (!this.src || scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
             breakdown.scripts--;
