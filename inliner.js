@@ -1,14 +1,16 @@
 var URL = require('url'),
     util = require('util'),
-    jsmin = require('./jsmin'),
+//    jsmin = require('jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
-    path = require('path'),
     jsdom = require('jsdom'),
     uglifyjs = require('uglify-js'),
     jsp = uglifyjs.parser,
     pro = uglifyjs.uglify,
+    mime = require('mime'),
+    path = require('path'),
+    Xtend = require('xtend');
     compress = null, // import only when required - might make the command line tool easier to use
     http = {
       http: require('http'),
@@ -67,30 +69,35 @@ function Inliner(url, options, callback) {
     console.error(data + ' :: ' + url);
   });
   
-  inliner.get(url, function (html) {
+  inliner.get(url, options, function (html) {
     inliner.todo--;
     inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
-    
-    // workaround for https://github.com/tmpvar/jsdom/issues/172
-    // need to remove empty script tags as it casues jsdom to skip the env callback
-    html = html.replace(/<\script(:? type=['"|].*?['"|])><\/script>/ig, '');
 
     if (!html) {
       inliner.emit('end', '');
-      callback && callback('');
+      callback && callback('', null);
     } else {
       // BIG ASS PROTECTIVE TRY/CATCH - mostly because of this: https://github.com/tmpvar/jsdom/issues/319
       try { 
 
-      jsdom.env(html, '', [
-        'http://code.jquery.com/jquery.min.js'
-      ], function(errors, window) {
+      jsdom.env(html,
+          ['http://code.jquery.com/jquery.min.js'],
+      function(errors, window) {
+        var metaContent = window.$('meta[name=inliner-options]').attr('content'),
+            fileOptions;
+        if (errors) {
+          console.log(errors);
+        }
         // remove jQuery that was included with jsdom
         window.$('script:last').remove();
         
+        if (metaContent) {
+          fileOptions = JSON.parse(metaContent);
+          inliner.options = Xtend(inliner.options, fileOptions);
+        }
         var todo = { scripts: true, images: inliner.options.images, links: true, styles: true },
             assets = {
-              scripts: window.$('script'),
+              scripts: window.$('script').filter(function(){ return this.src != null; }),
               images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
               links: window.$('link[rel=stylesheet]'),
               styles: window.$('style')
@@ -139,7 +146,7 @@ function Inliner(url, options, callback) {
             }
 
             html = '<!DOCTYPE html>' + html;
-            callback && callback(html);
+            callback && callback(html, window);
             inliner.emit('end', html);
           } else if (items < 0) {
             console.log('something went wrong on finish');
@@ -149,14 +156,24 @@ function Inliner(url, options, callback) {
 
         todo.images && assets.images.each(function () {
           var img = this,
-              resolvedURL = URL.resolve(url, img.src);
-          inliner.get(resolvedURL, { encode: true }, function (dataurl) {
-            if (dataurl) images[img.src] = dataurl;
-            img.src = dataurl;
+              src = img.getAttribute('src');
+          
+          function processImage(origin, resolved) {
+            images[origin] = resolved;
+            img.src = resolved;
             breakdown.images--;
             inliner.todo--;
             finished();
-          });
+          }
+
+              // if the src starts with '{', it's not a URI
+          if (src[0] === '{') {
+            processImage(src, src);
+          } else {
+            inliner.get(URL.resolve(url, src), { encode: true }, function (dataurl) {
+              processImage(src, dataurl);
+            });
+          }
         });
     
         todo.styles && assets.styles.each(function () {
@@ -225,7 +242,7 @@ function Inliner(url, options, callback) {
               }
 
               // don't compress already minified code
-              if(!(/\bmin\b/).test(src) && !(/google-analytics/).test(src)) { 
+              if(!(/\bmin\b/).test(src) && !(/google-analytics/).test(src) && inliner.options.compressJS) { 
                 inliner.todo++;
                 inliner.total++;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
@@ -308,7 +325,7 @@ function Inliner(url, options, callback) {
       });
 
       } catch (e) {
-        inliner.emit('error', 'Fatal error parsing HTML - exiting');
+        inliner.emit('error', 'Fatal error parsing HTML ' + e + '\n' + e.stack);
       }
     }
   });
@@ -319,12 +336,21 @@ util.inherits(Inliner, events.EventEmitter);
 Inliner.version = Inliner.prototype.version = JSON.parse(require('fs').readFileSync(__dirname + '/package.json').toString()).version;
 
 Inliner.prototype.get = function (url, options, callback) {
+  var inliner = this,
+      fileURI = url,
+      fileSearchPath;
+
   // support no options being passed in
   if (typeof options == 'function') {
     callback = options;
     options = {};
   }
-  
+  fileSearchPath = options.webRoot || inliner.options.webRoot || "";
+
+  if (options.passingContent) {
+    this.emit('progress', 'loaded content from caller');
+    return callback && callback(url);
+  }
   // if we've cached this request in the past, just return the cached content
   if (this.requestCache[url] !== undefined) {
     this.emit('progress', 'cached ' + url);
@@ -335,17 +361,27 @@ Inliner.prototype.get = function (url, options, callback) {
   } else {
     this.requestCachePending[url] = [callback];
   }
-
-  var inliner = this;
-
+  // TODO - sort out the locations of the dependencies - accept a search path
+  if ('/' === fileURI.substr(0, 1)) {
+    this.emit('progress', "checking presence of " + fileSearchPath + fileURI);
+    if (fs.existsSync(fileSearchPath + fileURI)) {
+      fileURI = fileSearchPath + fileURI;
+    } else {
+      fileURI = fileSearchPath + "/updateable" + fileURI;
+      this.emit('progress', "checking presence of " + fileURI);
+    }
+  }
   // TODO remove the sync
-  if (path.existsSync(url)) {
+  if (fs.existsSync(fileURI)) {
     // then we're dealing with a file
-    fs.readFile(url, 'utf8', function (err, body) {
+    fs.readFile(fileURI, (options.encode ? null : 'utf8') , function (err, body) {
+      if (options.encode) {
+        body = 'data:' + mime.lookup(url) + ';base64,' + body.toString('base64');
+      }
       inliner.requestCache[url] = body;
       inliner.requestCachePending[url].forEach(function (callback, i) {
         if (i == 0 && body) {
-          inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
+          inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url + ' [' + body.length + ' bytes]');
         } else if (body) {
           inliner.emit('progress', 'cached ' + url);
         }
@@ -356,10 +392,17 @@ Inliner.prototype.get = function (url, options, callback) {
     return;
   }
   
+  inliner.emit("progress", "NOTE: <" + url + "> is not a file!");
   // otherwis continue and create a new web request
   var request = makeRequest(url),
       body = '';
 
+  if(request == null) {
+  	inliner.requestCache[url] = url;
+  	callback && callback();
+  	return;
+  }
+  
   // this tends to occur when we can't connect to the url - i.e. target is down
   // note that the main inliner app handles sending the error back to the client
   request.on('error', function (error) {
@@ -424,7 +467,8 @@ Inliner.prototype.get = function (url, options, callback) {
 
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
-        body = ''; // ?
+        body = null; // ?
+        callback && callback(body); // TODO - have to count this as 'complete' / error out 
       } else if (res.headers['location']) {
         return inliner.get(res.headers['location'], options, callback);
       } else {
@@ -441,7 +485,7 @@ Inliner.prototype.get = function (url, options, callback) {
         inliner.requestCache[url] = body;
         inliner.requestCachePending[url].forEach(function (callback, i) {
           if (i == 0 && body && res.statusCode == 200) {
-            inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url);
+            inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url + ' [' + body.length + ' bytes]');
           } else if (body) {
             inliner.emit('progress', 'cached ' + url);
           }
@@ -535,7 +579,7 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   }
 };
 
-Inliner.defaults = function () { return { compressCSS: true, collapseWhitespace: true, images: true }; };
+Inliner.defaults = function () { return { compressCSS: true, compressJS: true, collapseWhitespace: true, images: true, webRoot: path.dirname(path.dirname(__dirname)) + '/target' }; };
 
 var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
   var oURL = URL.parse(url),
@@ -549,8 +593,9 @@ var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
   for (var key in extraOptions) {
     options[key] = extraOptions[key];
   }
-
-  return http[oURL.protocol.slice(0, -1) || 'http'].request(options);
+  
+  //return http[oURL.protocol.slice(0, -1) || 'http'].request(options);
+  return oURL.hostname ? http[oURL.protocol.slice(0, -1) || 'http'].request(options) : null;
 };
 
 module.exports = Inliner;

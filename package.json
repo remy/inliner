@@ -10,9 +10,11 @@
     "web": "http://github.com/remy"
   },
   "dependencies": {
-    "jsdom": "latest",
+    "jsdom": "0.10.1",
     "uglify-js": "1.2.2",
-    "commander": "0.5.1"
+    "commander": "0.5.1",
+    "mime": "1.2.9",
+    "xtend": "2.1.2"
   },
   "repository": {
     "type": "git",
