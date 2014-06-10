@@ -10,7 +10,7 @@ var URL = require('url'),
     pro = uglifyjs.uglify,
     mime = require('mime'),
     path = require('path'),
-    Xtend = require('xtend');
+    Xtend = require('xtend'),
     compress = null, // import only when required - might make the command line tool easier to use
     http = {
       http: require('http'),
@@ -75,14 +75,24 @@ function Inliner(url, options, callback) {
 
     if (!html) {
       inliner.emit('end', '');
-      callback && callback('', null);
+      if (callback) callback('', null);
     } else {
-      // BIG ASS PROTECTIVE TRY/CATCH - mostly because of this: https://github.com/tmpvar/jsdom/issues/319
       try { 
-
-      jsdom.env(html,
-          ['http://code.jquery.com/jquery.min.js'],
-      function(errors, window) {
+        jsdom.env({
+          html: html, 
+          scripts:[
+                   'http://code.jquery.com/jquery.min.js'
+                   ],
+          url: url,
+          done: processDocument
+        });
+      } catch (e) {
+        inliner.emit('error', 'Fatal error parsing HTML ' + e + '\n' + e.stack);
+      }
+      /* jshint -W082 */ 
+      /* Leaving the function here to limit the breadth of diffs for merge 
+       */
+      function processDocument(errors, window) {
         var metaContent = window.$('meta[name=inliner-options]').attr('content'),
             fileOptions;
         if (errors) {
@@ -97,7 +107,7 @@ function Inliner(url, options, callback) {
         }
         var todo = { scripts: true, images: inliner.options.images, links: true, styles: true },
             assets = {
-              scripts: window.$('script').filter(function(){ return this.src != null; }),
+              scripts: window.$('script').filter(function(){ return this.src !== null; }),
               images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
               links: window.$('link[rel=stylesheet]'),
               styles: window.$('style')
@@ -146,7 +156,7 @@ function Inliner(url, options, callback) {
             }
 
             html = '<!DOCTYPE html>' + html;
-            callback && callback(html, window);
+            if (callback) callback(html, window);
             inliner.emit('end', html);
           } else if (items < 0) {
             console.log('something went wrong on finish');
@@ -154,7 +164,7 @@ function Inliner(url, options, callback) {
           } 
         }
 
-        todo.images && assets.images.each(function () {
+        if (todo.images) assets.images.each(function () {
           var img = this,
               src = img.getAttribute('src');
           
@@ -176,7 +186,7 @@ function Inliner(url, options, callback) {
           }
         });
     
-        todo.styles && assets.styles.each(function () {
+        if (todo.styles) assets.styles.each(function () {
           var style = this;
           inliner.getImportCSS(root, this.innerHTML, function (css, url) {
             inliner.getImagesFromCSS(url, css, function (css) {
@@ -190,7 +200,7 @@ function Inliner(url, options, callback) {
           });
         });
 
-        todo.links && assets.links.each(function () {
+        if (todo.links) assets.links.each(function () {
           var link = this,
               linkURL = URL.resolve(url, link.href);
 
@@ -219,10 +229,10 @@ function Inliner(url, options, callback) {
 
         function scriptsFinished() {
           inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
-          if (breakdown.scripts == 0) {
+          if (breakdown.scripts === 0) {
             // now compress the source JavaScript
             assets.scripts.each(function () {
-              if (this.innerHTML.trim().length == 0) {
+              if (this.innerHTML.trim().length === 0) {
                 // this is an empty script, so throw it away
                 inliner.todo--;
                 inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
@@ -281,9 +291,9 @@ function Inliner(url, options, callback) {
 
         // basically this is the jQuery instance we tacked on to the request,
         // but we're just being extra sure before we do zap it out  
-        todo.scripts && assets.scripts.each(function () {
+        if (todo.scripts) assets.scripts.each(function () {
           var $script = window.$(this),
-              scriptURL = URL.resolve(url, this.src);
+              scriptURL = URL.resolve(url, (this.src||"").toString());
 
           if (!this.src || scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
             breakdown.scripts--;
@@ -302,10 +312,10 @@ function Inliner(url, options, callback) {
         });
 
         // edge case - if there's no images, nor scripts, nor links - we call finished manually
-        if (assets.links.length == 0 && 
-            assets.styles.length == 0 && 
-            assets.images.length == 0 && 
-            assets.scripts.length == 0) {
+        if (assets.links.length === 0 && 
+            assets.styles.length === 0 && 
+            assets.images.length === 0 && 
+            assets.scripts.length === 0) {
           finished();
         }
         
@@ -322,10 +332,6 @@ function Inliner(url, options, callback) {
          *  - support for @import
          *  - javascript validation - i.e. not throwing errors
          */
-      });
-
-      } catch (e) {
-        inliner.emit('error', 'Fatal error parsing HTML ' + e + '\n' + e.stack);
       }
     }
   });
@@ -380,12 +386,12 @@ Inliner.prototype.get = function (url, options, callback) {
       }
       inliner.requestCache[url] = body;
       inliner.requestCachePending[url].forEach(function (callback, i) {
-        if (i == 0 && body) {
+        if (i === 0 && body) {
           inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url + ' [' + body.length + ' bytes]');
         } else if (body) {
           inliner.emit('progress', 'cached ' + url);
         }
-        callback && callback(body);
+        if (callback) callback(body);
       });
     });
     
@@ -397,9 +403,9 @@ Inliner.prototype.get = function (url, options, callback) {
   var request = makeRequest(url),
       body = '';
 
-  if(request == null) {
+  if (request === null) {
   	inliner.requestCache[url] = url;
-  	callback && callback();
+  	if (callback) callback();
   	return;
   }
   
@@ -407,7 +413,7 @@ Inliner.prototype.get = function (url, options, callback) {
   // note that the main inliner app handles sending the error back to the client
   request.on('error', function (error) {
     console.error(error.message, url);
-    callback && callback('');
+    if (callback) callback('');
   });
 
 
@@ -468,9 +474,9 @@ Inliner.prototype.get = function (url, options, callback) {
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
         body = null; // ?
-        callback && callback(body); // TODO - have to count this as 'complete' / error out 
-      } else if (res.headers['location']) {
-        return inliner.get(res.headers['location'], options, callback);
+        if (callback) callback(body); // TODO - have to count this as 'complete' / error out 
+      } else if (res.headers.location) {
+        return inliner.get(res.headers.location, options, callback);
       } else {
         if (options && options.not) {
           if (res.headers['content-type'].indexOf(options.not) !== -1) {
@@ -484,12 +490,12 @@ Inliner.prototype.get = function (url, options, callback) {
         
         inliner.requestCache[url] = body;
         inliner.requestCachePending[url].forEach(function (callback, i) {
-          if (i == 0 && body && res.statusCode == 200) {
+          if (i === 0 && body && res.statusCode == 200) {
             inliner.emit('progress', (options.encode ? 'encode' : 'get') + ' ' + url + ' [' + body.length + ' bytes]');
           } else if (body) {
             inliner.emit('progress', 'cached ' + url);
           }
-          callback && callback(body);
+          if (callback) callback(body);
         });
       }
     });
@@ -498,7 +504,7 @@ Inliner.prototype.get = function (url, options, callback) {
 
 Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
   if (this.options.images === false) {
-    callback && callback(rawCSS);
+    if (callback) callback(rawCSS);
     return;
   }
   
@@ -516,7 +522,7 @@ Inliner.prototype.getImagesFromCSS = function (rooturl, rawCSS, callback) {
     inliner.emit('jobs', (inliner.total - inliner.todo) + '/' + inliner.total);
     if (imageCount < 0) {
       console.log('something went wrong :-S');
-    } else if (imageCount == 0) {
+    } else if (imageCount === 0) {
       callback(rawCSS.replace(urlMatch, function (m, url) {
         return 'url(' + images[url] + ')';
       }));
@@ -579,7 +585,7 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   }
 };
 
-Inliner.defaults = function () { return { compressCSS: true, compressJS: true, collapseWhitespace: true, images: true, webRoot: path.dirname(path.dirname(__dirname)) + '/target' }; };
+Inliner.defaults = function () { return { compressCSS: true, compressJS: true, collapseWhitespace: true, images: true, webRoot: path.join(path.dirname(path.dirname(__dirname)), 'target') }; };
 
 var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
   var oURL = URL.parse(url),
