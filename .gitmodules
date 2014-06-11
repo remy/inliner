@@ -1,3 +1,0 @@
-[submodule "node-compress"]
-	path = node-compress
-	url = git://github.com/kkaefer/node-compress.git
