@@ -344,6 +344,7 @@ Inliner.version = Inliner.prototype.version = JSON.parse(require('fs').readFileS
 Inliner.prototype.get = function (url, options, callback) {
   var inliner = this,
       fileURI = url,
+      i, tmpPath,
       fileSearchPath;
 
   // support no options being passed in
@@ -351,7 +352,6 @@ Inliner.prototype.get = function (url, options, callback) {
     callback = options;
     options = {};
   }
-  fileSearchPath = options.webRoot || inliner.options.webRoot || "";
 
   if (options.passingContent) {
     this.emit('progress', 'loaded content from caller');
@@ -367,14 +367,20 @@ Inliner.prototype.get = function (url, options, callback) {
   } else {
     this.requestCachePending[url] = [callback];
   }
-  // TODO - sort out the locations of the dependencies - accept a search path
+  
+  fileSearchPath = options.webRoot || inliner.options.webRoot || [];
+  if ("string" == typeof fileSearchPath) {
+    fileSearchPath = fileSearchPath.split(':');
+  }
+  // Search for absolute path names in each element of fileSearchPath
   if ('/' === fileURI.substr(0, 1)) {
-    this.emit('progress', "checking presence of " + fileSearchPath + fileURI);
-    if (fs.existsSync(fileSearchPath + fileURI)) {
-      fileURI = fileSearchPath + fileURI;
-    } else {
-      fileURI = fileSearchPath + "/updateable" + fileURI;
-      this.emit('progress', "checking presence of " + fileURI);
+    for (i in fileSearchPath) {
+      tmpPath = path.join(fileSearchPath[i], fileURI);
+      this.emit('progress', "checking presence of " + path.resolve(tmpPath));
+      if (fs.existsSync(tmpPath)) {
+        fileURI = tmpPath;
+        break;
+      }
     }
   }
   // TODO remove the sync
@@ -585,7 +591,7 @@ Inliner.prototype.getImportCSS = function (rooturl, css, callback) {
   }
 };
 
-Inliner.defaults = function () { return { compressCSS: true, compressJS: true, collapseWhitespace: true, images: true, webRoot: path.join(path.dirname(path.dirname(__dirname)), 'target') }; };
+Inliner.defaults = function () { return { compressCSS: true, compressJS: true, collapseWhitespace: true, images: true, webRoot: [] }; };
 
 var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
   var oURL = URL.parse(url),
