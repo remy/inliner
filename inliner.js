@@ -427,6 +427,7 @@ Inliner.prototype.get = function (url, options, callback) {
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
         body = ''; // ?
+        callback && callback(body);
       } else if (res.headers['location']) {
         return inliner.get(res.headers['location'], options, callback);
       } else {
