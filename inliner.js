@@ -1,6 +1,6 @@
 var URL = require('url'),
     util = require('util'),
-    jsmin = require('./jsmin'),
+    jsmin = require('jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
