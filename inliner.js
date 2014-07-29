@@ -4,7 +4,6 @@ var URL = require('url'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
-    path = require('path'),
     jsdom = require('jsdom'),
     uglifyjs = require('uglify-js'),
     jsp = uglifyjs.parser,
@@ -268,7 +267,7 @@ function Inliner(url, options, callback) {
         // but we're just being extra sure before we do zap it out  
         todo.scripts && assets.scripts.each(function () {
           var $script = window.$(this),
-              scriptURL = URL.resolve(url, (this.src||"").toString());
+              scriptURL = URL.resolve(url, this.src);
 
           if (!this.src || scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
             breakdown.scripts--;
@@ -341,7 +340,8 @@ Inliner.prototype.get = function (url, options, callback) {
   var inliner = this;
 
   // TODO remove the sync
-  if (path.existsSync(url)) {
+
+  if (fs.existsSync(url)) {
     // then we're dealing with a file
     fs.readFile(url, 'utf8', function (err, body) {
       inliner.requestCache[url] = body;
@@ -356,9 +356,12 @@ Inliner.prototype.get = function (url, options, callback) {
     });
     
     return;
-  }
+  }else if(url.indexOf("http")<0){
+    console.error("File does not exist: ", url);
+    return;
+  }    
   
-  // otherwis continue and create a new web request
+  // otherwise continue and create a new web request
   var request = makeRequest(url),
       body = '';
 
@@ -427,7 +430,6 @@ Inliner.prototype.get = function (url, options, callback) {
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
         body = ''; // ?
-        callback && callback(body);
       } else if (res.headers['location']) {
         return inliner.get(res.headers['location'], options, callback);
       } else {
