@@ -311,6 +311,7 @@ function Inliner(url, options, callback) {
 
       } catch (e) {
         inliner.emit('error', 'Fatal error parsing HTML - exiting');
+        process.exit(1);
       }
     }
   });
