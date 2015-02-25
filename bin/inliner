@@ -62,7 +62,7 @@ fs.realpath(__filename, function(error, script) {
 
   var url = program.args[0];
 
-  if (path.existsSync(url)) {
+  if (fs.existsSync(url)) {
     // then it's a file
   } else if (url.indexOf('http') !== 0) {
     url = 'http://' + url;
