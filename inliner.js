@@ -1,6 +1,6 @@
 var URL = require('url'),
     util = require('util'),
-    jsmin = require('./jsmin'),
+    jsmin = require('jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
@@ -92,7 +92,7 @@ function Inliner(url, options, callback) {
         
         var todo = { scripts: true, images: inliner.options.images, links: true, styles: true },
             assets = {
-              scripts: window.$('script'),
+              scripts: window.$('script').filter(function(){ return this.src != null; }),
               images: window.$('img').filter(function(){ return this.src.indexOf('data:') == -1; }),
               links: window.$('link[rel=stylesheet]'),
               styles: window.$('style')
@@ -363,6 +363,12 @@ Inliner.prototype.get = function (url, options, callback) {
   var request = makeRequest(url),
       body = '';
 
+  if(request == null) {
+  	inliner.requestCache[url] = url;
+  	callback && callback(url);
+  	return;
+  }
+  
   // this tends to occur when we can't connect to the url - i.e. target is down
   // note that the main inliner app handles sending the error back to the client
   request.on('error', function (error) {
@@ -553,8 +559,9 @@ var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
   for (var key in extraOptions) {
     options[key] = extraOptions[key];
   }
-
-  return http[oURL.protocol.slice(0, -1) || 'http'].request(options);
+  
+  //return http[oURL.protocol.slice(0, -1) || 'http'].request(options);
+  return oURL.hostname != null ? http[oURL.protocol.slice(0, -1) || 'http'].request(options) : null;
 };
 
 module.exports = Inliner;
