@@ -218,7 +218,7 @@ function Inliner(url, options, callback) {
                   src = $script.attr('src'),
                   // note: not using .innerHTML as this coerses & => &amp;
                   orig_code = this.firstChild.nodeValue
-                                  .replace(/<\/script>/gi, '<\\/script>'),
+                                  .replace(/<\/(?=(\s*)script[\/ >])/gi, '<\\/'),
                   final_code = '';
 
               // only remove the src if we have a script body
