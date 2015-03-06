@@ -1,15 +1,13 @@
 var URL = require('url'),
     util = require('util'),
-    jsmin = require('./jsmin'),
     events = require('events'),
     Buffer = require('buffer').Buffer,
     fs = require('fs'),
-    path = require('path'),
     jsdom = require('jsdom'),
     uglifyjs = require('uglify-js'),
     jsp = uglifyjs.parser,
     pro = uglifyjs.uglify,
-    compress = null, // import only when required - might make the command line tool easier to use
+    zlib = require('zlib'),
     http = {
       http: require('http'),
       https: require('https')
@@ -248,7 +246,6 @@ function Inliner(url, options, callback) {
                   }
                 } catch (e) {
                   // console.error(orig_code.indexOf('script>script'));
-                  // window.$(this).html(jsmin('', orig_code, 2));
                   console.error('exception on ', src);
                   console.error('exception in ' + src + ': ' + e.message);
                   console.error('>>>>>> ' + orig_code.split('\n')[e.line - 1]);
@@ -374,21 +371,11 @@ Inliner.prototype.get = function (url, options, callback) {
   request.on('response', function (res) {
     var gunzip;
 
-    // if we get a gzip header, then first we attempt to load the node-compress library
-    // ...which annoyingly isn't supported anymore (maybe I should fork it...).
-    // once loaded, we set up event listeners to handle data coming in and do a little
+    // if we get a defalte or gzip header, we create a zlib gunzip stream 
+    // then,  we set up event listeners to handle data coming in and do a little
     // dance with the response object - which I'll explain... ==>
-    if (res.headers['content-encoding'] == 'gzip') {
-      console.error('loading gzip library');
-      if (compress === null) {
-        try {
-          compress = require('./node-compress/lib/compress/');
-        } catch (e) {
-          console.error(url + ' sent gzipped header\nFailed to load node-compress - see http://github.com/remy/inliner for install directions. \nexiting');
-          process.exit();
-        }
-      }
-      gunzip = new compress.GunzipStream();
+    if (res.headers['content-encoding'] == 'gzip' || res.headers['content-encoding'] == 'deflate') {
+      gunzip = zlib.createUnzip();
       
       // the data event is triggered by writing to the gunzip object when the response
       // receives data (yeah, further down).
@@ -547,7 +534,8 @@ var makeRequest = Inliner.makeRequest = function (url, extraOptions) {
         host: oURL.hostname,
         port: oURL.port === undefined ? (oURL.protocol+'').indexOf('https') === 0 ? 443 : 80 : oURL.port,
         path: (oURL.pathname || '/') + (oURL.search || ''), // note 0.5.0pre doesn't fill pathname if missing
-        method: 'GET'
+        method: 'GET',
+        headers: {"accept-encoding" : "gzip,deflate"}
       };
 
   for (var key in extraOptions) {
