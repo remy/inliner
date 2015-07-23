@@ -268,7 +268,7 @@ function Inliner(url, options, callback) {
         // but we're just being extra sure before we do zap it out  
         todo.scripts && assets.scripts.each(function () {
           var $script = window.$(this),
-              scriptURL = URL.resolve(url, (this.src||"").toString());
+              scriptURL = URL.resolve(url, this.src);
 
           if (!this.src || scriptURL.indexOf('google-analytics.com') !== -1) { // ignore google
             breakdown.scripts--;
@@ -311,7 +311,6 @@ function Inliner(url, options, callback) {
 
       } catch (e) {
         inliner.emit('error', 'Fatal error parsing HTML - exiting');
-        process.exit(1);
       }
     }
   });
@@ -342,7 +341,7 @@ Inliner.prototype.get = function (url, options, callback) {
   var inliner = this;
 
   // TODO remove the sync
-  if (fs.existsSync(url)) {
+  if (path.existsSync(url)) {
     // then we're dealing with a file
     fs.readFile(url, 'utf8', function (err, body) {
       inliner.requestCache[url] = body;
@@ -428,7 +427,6 @@ Inliner.prototype.get = function (url, options, callback) {
       if (res.statusCode !== 200) {
         inliner.emit('progress', 'get ' + res.statusCode + ' on ' + url);
         body = ''; // ?
-        callback && callback(body);
       } else if (res.headers['location']) {
         return inliner.get(res.headers['location'], options, callback);
       } else {
