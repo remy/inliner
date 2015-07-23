@@ -1,13 +1,19 @@
 {
   "name": "inliner",
-  "version": "0.1.14",
+  "version": "0.1.16",
   "description": "Utility to inline images, CSS and JavaScript for a web page - useful for mobile sites",
   "homepage": "http://github.com/remy/inliner",
   "main": "inliner",
-  "keywords": ["mobile", "inline", "production", "build", "minify"],
+  "keywords": [
+    "mobile",
+    "inline",
+    "production",
+    "build",
+    "minify"
+  ],
   "author": {
     "name": "Remy Sharp",
-    "web": "http://github.com/remy"
+    "url": "http://github.com/remy"
   },
   "dependencies": {
     "jsdom": "0.6.5",
@@ -20,5 +26,30 @@
   },
   "bin": {
     "inliner": "bin/inliner"
-  }
+  },
+  "readme": "# Inliner\n\nTurns your web page to a single HTML file with everything inlined - perfect for appcache manifests on mobile devices that you want to reduce those http requests.\n\n## What it does\n\n- Get a list of all the assets required to drive the page: CSS, JavaScript, images and images used in CSS\n- Minify JavaScript (via [uglify-js](https://github.com/mishoo/UglifyJS \"mishoo/UglifyJS - GitHub\"))\n- Strips white from CSS\n- Base64 encode images\n- Puts everything back together as a single HTML file with a simplfied doctype\n\n## Installation\n\nCheck out a working copy of the source code with [Git](http://git-scm.com), or install `inliner` via [npm](http://npmjs.org) (the recommended way). The latter will also install `inliner` into the system's `bin` path.\n\n    $ npm install inliner -g\n    \nOr\n    \n    $ git clone https://github.com/remy/inliner.git\n    \n`inliner` uses a `package.json` to describe the dependancies, and if you install via a github clone, ensure you run `npm install` from the `inliner` directory to install the dependancies (or manually install [jsdom](https://github.com/tmpvar/jsdom \"tmpvar/jsdom - GitHub\") and [uglify-js](https://github.com/mishoo/UglifyJS \"mishoo/UglifyJS - GitHub\")).\n\n## Usage\n\nIf you have either installed via npm or put the inliner bin directory in your path, then you can use inliner via the command line as per:\n\n    inliner http://remysharp.com\n\nThis will output the inlined markup with default options. You can see more options on how to disable compression or how not to base64 encode images using the help:\n\n    inliner --help\n\nTo use inline inside your own script:\n\n    var Inliner = require('inliner');\n\n    new Inliner('http://remysharp.com', function (html) {\n      // compressed and inlined HTML page\n      console.log(html);\n    });\n    \nOr:\n    \n    var inliner = new Inliner('http://remysharp.com');\n    \n    inliner.on('progress', function (event) {\n      console.error(event);\n    }).on('end', function (html) {\n      // compressed and inlined HTML page\n      console.log(html);      \n    });\n\nNote that if you include the inliner script via a git submodule, it requires jsdom & uglifyjs to be installed via `npm install jsdom uglify-js`, otherwise you should be good to run.\n\nOnce you've inlined the crap out of the page, add the `manifest=\"self.appcache\"` to the `html` tag and create an empty file called self.appcache ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).\n\n## Support\n\n- Collapses all white space in HTML (except inside `<pre>` elements)\n- Strips all HTML comments\n- Pulls JavaScript and CSS inline to HTML\n- Compresses JavaScript via uglify (if not compressed already)\n- Converts all images to based64 data urls, both inline images and CSS images\n- Imports all @import rules from CSS (recusively)\n- Applies media query rules (for print, tv, etc media types)\n- Leaves conditional comments in place\n- If JavaScript can't be imported (or is Google Analytics), source is not put inline\n\n## Limitations / Caveats\n\n- Whitespace compression might get a little heavy handed - all whitespace is collapsed from n spaces to one space.\n  ",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/remy/inliner/issues"
+  },
+  "_id": "inliner@0.1.16",
+  "dist": {
+    "shasum": "0a69d423d6455456c86d042907b329a598f04cd2",
+    "tarball": "http://registry.npmjs.org/inliner/-/inliner-0.1.16.tgz"
+  },
+  "_from": "inliner@^0.1.16",
+  "_npmVersion": "1.3.11",
+  "_npmUser": {
+    "name": "remy",
+    "email": "remy@remysharp.com"
+  },
+  "maintainers": [
+    {
+      "name": "remy",
+      "email": "remy@remysharp.com"
+    }
+  ],
+  "directories": {},
+  "_shasum": "0a69d423d6455456c86d042907b329a598f04cd2",
+  "_resolved": "https://registry.npmjs.org/inliner/-/inliner-0.1.16.tgz"
 }
