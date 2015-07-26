@@ -67,6 +67,7 @@ var inliner = new Inliner(url, argv, function result(error, html) {
 
     process.exit(1);
   }
+
   console.log(html);
 });
 
