@@ -5,7 +5,14 @@
   <title>inline script</title>
 </head>
 <body>
-<script>alert('hello world');</script>
+<script>function doit(window) {
+  var foo = 'remy';
+  var bar = window.bar = 'sharp';
+  return foo + bar.split('').reverse().join('');
+}
+
+console.log(doit(window));
+</script>
 <script>console.log('Hello world');</script>
 </body>
 </html>

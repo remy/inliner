@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>full combo</title>
+  <link src="import.css" rel="stylesheet">
+  <style>
+  @import url("import.css");
+
+  body {
+    font-family: sans-serif;
+  }
+
+  #icon {
+    height: 48px;
+    width: 48px;
+    background: url(image.jpg) no-repeat;
+    background-size: cover;
+  }
+  </style>
+</head>
+<body>
+<script>function doit(window) {
+  var foo = 'remy';
+  var bar = window.bar = 'sharp';
+  return foo + bar.split('').reverse().join('');
+}
+
+console.log(doit(window));
+</script>
+<script>console.log('Hello world');</script>
+<img src="image.jpg" title="Remy Sharp">
+<div id="icon"></div>
+</body>
+</html>
