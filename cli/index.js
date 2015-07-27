@@ -31,32 +31,25 @@ if (argv.debug) {
   require('debug').enable('inliner');
 }
 
-var Inliner = require('../');
-
 // checks for available update and returns an instance
-// var updateNotifier = require('update-notifier');
-// var pkg = require('../package.json');
-// var notifier = updateNotifier({ pkg: pkg });
-// if (notifier.update) {
-//   // notify using the built-in convenience method
-//   notifier.notify();
-// }
+var updateNotifier = require('update-notifier');
+var pkg = require(__dirname + '/../package.json');
+var notifier = updateNotifier({ pkg: pkg });
+if (notifier.update) {
+  // notify using the built-in convenience method
+  notifier.notify();
+}
 
+var Inliner = require('../');
 var url = argv._.shift();
 
-var argvKeys = Object.keys(argv).filter(function (item) {
+var argvKeys = Object.keys(argv).filter(function filter(item) {
   return item !== '_';
 });
 
 if (!url && argvKeys.length === 0 || argv.help) {
   // show USAGE!
-  console.log('  Examples:');
-  console.log('');
-  console.log('    $ inliner -v http://twitter.com > twitter.html');
-  console.log('    $ inliner -ni http://twitter.com > twitter.html');
-  console.log('');
-  console.log('  For more details see http://github.com/remy/inliner/');
-  console.log('');
+  console.log(require('fs').readFileSync(__dirname + '/../docs/usage.txt', 'utf8'));
   process.exit(0);
 }
 

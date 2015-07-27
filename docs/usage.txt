@@ -1,0 +1,19 @@
+
+  Usage:
+
+    $ inliner [options] url-or-filename
+
+  Options:
+
+    -h, --help        output usage information
+    -V, --version     output the version number
+    -v, --verbose     echo on STDERR the progress of inlining
+    -n, --nocompress  don't compress CSS or HTML - useful for debugging
+    -i, --images      don't encode images - keeps files size small, but more requests
+
+  Examples:
+
+    $ inliner -v https://twitter.com > twitter.html
+    $ inliner -ni local-file.html > local-file.min.html
+
+  For more details see http://github.com/remy/inliner/
