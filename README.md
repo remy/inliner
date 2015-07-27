@@ -2,6 +2,8 @@
 
 Turns your web page to a single HTML file with everything inlined - perfect for appcache manifests on mobile devices that you want to reduce those http requests.
 
+[![Build Status](https://travis-ci.org/remy/inliner.svg)](https://travis-ci.org/remy/inliner)
+
 ## What it does
 
 - Get a list of all the assets required to drive the page: CSS, JavaScript, images and images used in CSS
