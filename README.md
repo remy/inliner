@@ -14,10 +14,9 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 
 ## Installation
 
-Check out a working copy of the source code with [Git](http://git-scm.com), or install `inliner` via [npm](http://npmjs.org) (the recommended way). The latter will also install `inliner` into the system's `bin` path.
+Install the `inliner` utility via [npm](http://npmjs.org):
 
     $ npm install -g inliner
-
 
 ## Usage
 
@@ -33,7 +32,7 @@ To use inline inside your own script:
 
     var Inliner = require('inliner');
 
-    new Inliner('http://remysharp.com', function (html) {
+    new Inliner('http://remysharp.com', function (error, html) {
       // compressed and inlined HTML page
       console.log(html);
     });
@@ -48,8 +47,6 @@ Or:
       // compressed and inlined HTML page
       console.log(html);
     });
-
-Note that if you include the inliner script via a git submodule, it requires jsdom & uglifyjs to be installed via `npm install jsdom uglify-js`, otherwise you should be good to run.
 
 Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.appcache ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
 
