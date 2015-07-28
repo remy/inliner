@@ -1,11 +1,11 @@
 {
   "name": "inliner",
-  "version": "1.0.1",
   "description": "Utility to inline images, CSS and JavaScript for a web page - useful for mobile sites",
   "homepage": "http://github.com/remy/inliner",
   "main": "lib/index.js",
   "scripts": {
-    "test": "jscs -v cli/*.js lib/*.js && node test/*.test.js --cov"
+    "test": "jscs -v cli/*.js lib/*.js && node test/*.test.js --cov",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "keywords": [
     "mobile",
@@ -20,6 +20,7 @@
     "debug": "^2.2.0",
     "es6-promise": "^2.3.0",
     "lodash.assign": "^3.2.0",
+    "lodash.defaults": "^3.1.2",
     "lodash.foreach": "^3.0.3",
     "mime": "^1.3.4",
     "request": "^2.60.0",
@@ -29,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/remy/inliner.git"
+    "url": "https://github.com/remy/inliner.git"
   },
   "license": "MIT",
   "bin": {
@@ -39,6 +40,7 @@
     "jscs": "^2.0.0",
     "st": "^0.5.5",
     "tap-spec": "^4.0.2",
-    "tape": "^4.0.1"
+    "tape": "^4.0.1",
+    "semantic-release": "^4.0.0"
   }
 }

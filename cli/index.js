@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+var readFileSync = require('fs').readFileSync;
+
 var alias = {
   V: 'version',
   h: 'help',
@@ -32,13 +34,12 @@ if (argv.debug) {
 }
 
 // checks for available update and returns an instance
-var updateNotifier = require('update-notifier');
-var pkg = require(__dirname + '/../package.json');
-var notifier = updateNotifier({ pkg: pkg });
-if (notifier.update) {
-  // notify using the built-in convenience method
-  notifier.notify();
-}
+var defaults = require('lodash.defaults');
+var pkg = JSON.parse(readFileSync(__dirname + '/../package.json'));
+
+require('update-notifier')({
+  pkg: defaults(pkg, { version: '0.0.0' }),
+}).notify();
 
 var Inliner = require('../');
 var url = argv._.shift();
@@ -48,7 +49,7 @@ var argvKeys = Object.keys(argv).filter(function filter(item) {
 });
 
 if (!url && argvKeys.length === 0 || argv.help) {
-  var usage = require('fs').readFileSync(
+  var usage = readFileSync(
     __dirname + '/../docs/usage.txt', 'utf8'
   );
   console.log(usage);
@@ -56,7 +57,7 @@ if (!url && argvKeys.length === 0 || argv.help) {
 }
 
 if (argv.version) {
-  console.log(Inliner.version);
+  console.log(pkg.version === '0.0.0' ? 'development' : pkg.version);
 }
 
 var options = Inliner.defaults();
