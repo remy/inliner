@@ -11,6 +11,8 @@ When these are put in the [fixtures](https://github.com/remy/inliner/tree/master
 
 If there are any external assets the example needs, please also include these and name them with the same root as your example, i.e. `<issue>.css` or `<issue>.min.js` etc.
 
+**To test a single fixture you can use: `npm test <issue>`**
+
 ## Commit messages
 
 Commit messages must follow the [Angular-style](https://github.com/angular/angular.js/blob/master/CONTRIBUTING.md#commit-message-format) commit format (but excluding the scope).
