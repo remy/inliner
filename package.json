@@ -5,7 +5,7 @@
   "homepage": "http://github.com/remy/inliner",
   "main": "lib/index.js",
   "scripts": {
-    "test": "tape test/*.test.js --cov | tap-spec"
+    "test": "node test/*.test.js --cov"
   },
   "keywords": [
     "mobile",

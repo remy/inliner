@@ -64,4 +64,8 @@ Once you've inlined the crap out of the page, add the `manifest="self.appcache"`
 
 ## Limitations / Caveats
 
-- Whitespace compression might get a little heavy handed - all whitespace is collapsed from n spaces to one space.
+- Whitespace compression might get a little heavy handed - all whitespace is collapsed from `n` spaces to 1 space.
+
+## Filing issues & PRs
+
+Please see the [contributing](blob/master/CONTRIBUTING.md) for guidelines.

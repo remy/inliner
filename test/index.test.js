@@ -3,12 +3,15 @@ var test = require('tape');
 var Promise = require('es6-promise').Promise; // jshint ignore:line
 var fs = require('then-fs');
 var path = require('path');
+var tapSpec = require('tap-spec');
+
+test.createStream().pipe(tapSpec()).pipe(process.stdout);
 
 test('inliner core functions', function coreTests(t) {
   var Inliner = require('../');
 
   t.equal(typeof Inliner, 'function', 'Inliner is a function');
-  t.equal(Inliner.version, require('../package.json').version);
+  t.equal(Inliner.version, require('../package.json').version, 'should have version');
 
   var inliner = new Inliner();
   t.ok(inliner, 'inline is instantiated');
@@ -17,6 +20,16 @@ test('inliner core functions', function coreTests(t) {
 });
 
 test('inliner fixtures', function fixtureTests(t) {
+  var testFilter = process.argv.slice(-1).pop();
+  var testOffset = 1;
+
+  if (testFilter === '--cov') { // this is part of our npm test command
+    testFilter = null;
+    testOffset = 0;
+  } else {
+    t.pass('filtering against ' + testFilter + '.src.html');
+  }
+
   var Inliner = require('../');
   var files = fs.readdirSync(path.resolve(__dirname, 'fixtures'));
   var results = [];
@@ -24,15 +37,16 @@ test('inliner fixtures', function fixtureTests(t) {
     return file.indexOf('.src.') !== -1;
   }).filter(function filter(file) {
     // helps to diganose a single file
-    // return file.indexOf('image-css.src.html') === 0;
-    return file;
+    return testFilter ?
+           file.indexOf(testFilter + '.src.html') === 0 :
+           file;
   }).map(function map(file) {
     file = path.resolve(__dirname, 'fixtures', file);
     results.push(fs.readFile(file.replace('.src.', '.result.'), 'utf8'));
     return file;
   });
 
-  t.plan(files.length);
+  t.plan(files.length + testOffset);
 
   Promise.all(results).then(function then(results) {
     files.map(function map(file, i) {
