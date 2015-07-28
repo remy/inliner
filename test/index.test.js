@@ -4,6 +4,8 @@ var Promise = require('es6-promise').Promise; // jshint ignore:line
 var fs = require('then-fs');
 var path = require('path');
 var tapSpec = require('tap-spec');
+var http = require('http');
+var st = require('st');
 
 test.createStream().pipe(tapSpec()).pipe(process.stdout);
 
@@ -48,20 +50,31 @@ test('inliner fixtures', function fixtureTests(t) {
 
   t.plan(files.length + testOffset);
 
-  Promise.all(results).then(function then(results) {
-    files.map(function map(file, i) {
-      new Inliner(file, function callback(error, html) {
-        var basename = path.basename(file);
-        if (error) {
-          t.fail(error.message + ' @ ' + basename);
-          console.log(error.stack);
-        }
-        t.equal(html.trim(), results[i].trim(), basename + ' matches');
-      });
+  var server = http.createServer(
+    st(path.resolve(__dirname, 'fixtures'))
+  ).listen(54321);
+
+  server.on('listening', function listening() {
+    Promise.all(results).then(function then(results) {
+      return Promise.all(files.map(function map(file, i) {
+        return new Promise(function inlinerPromise(resolve, reject) {
+          new Inliner(file, function callback(error, html) {
+            var basename = path.basename(file);
+            if (error) {
+              error.message += ' @ ' + basename;
+              return reject(error);
+            }
+            t.equal(html.trim(), results[i].trim(), basename + ' matches');
+            resolve();
+          });
+        });
+      }));
+    }).catch(function errHandler(error) {
+      t.fail(error.message);
+      console.log(error.stack);
+      t.bailout();
+    }).then(function close() {
+      server.close();
     });
-  }).catch(function errHandler(error) {
-    t.fail(error.message);
-    console.log(error.stack);
-    t.bailout();
   });
 });

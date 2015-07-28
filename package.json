@@ -36,6 +36,7 @@
     "inliner": "cli/index.js"
   },
   "devDependencies": {
+    "st": "^0.5.5",
     "tap-spec": "^4.0.2",
     "tape": "^4.0.1"
   }

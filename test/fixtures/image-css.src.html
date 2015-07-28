@@ -4,10 +4,18 @@
   <meta charset="utf-8">
   <title>css image</title>
   <style>
+  body {
+    background: black;
+  }
   #image {
-    background: url(image.jpg) no-repeat;
+    background: url(1x1.gif) repeat;
     height: 400px;
     width: 400px;
+  }
+
+  #image {
+    /* another version of url include that could break */
+    background: url( "1x1.gif" ) repeat;
   }
   </style>
 </head>
