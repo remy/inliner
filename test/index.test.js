@@ -73,7 +73,6 @@ test('inliner fixtures', function fixtureTests(t) {
     }).catch(function errHandler(error) {
       t.fail(error.message);
       console.log(error.stack);
-      t.bailout();
     }).then(function close() {
       server.close();
     });
