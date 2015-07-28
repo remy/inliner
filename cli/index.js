@@ -48,8 +48,10 @@ var argvKeys = Object.keys(argv).filter(function filter(item) {
 });
 
 if (!url && argvKeys.length === 0 || argv.help) {
-  // show USAGE!
-  console.log(require('fs').readFileSync(__dirname + '/../docs/usage.txt', 'utf8'));
+  var usage = require('fs').readFileSync(
+    __dirname + '/../docs/usage.txt', 'utf8'
+  );
+  console.log(usage);
   process.exit(0);
 }
 

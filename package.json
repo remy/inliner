@@ -5,7 +5,7 @@
   "homepage": "http://github.com/remy/inliner",
   "main": "lib/index.js",
   "scripts": {
-    "test": "node test/*.test.js --cov"
+    "test": "jscs -v cli/*.js lib/*.js && node test/*.test.js --cov"
   },
   "keywords": [
     "mobile",
@@ -36,6 +36,7 @@
     "inliner": "cli/index.js"
   },
   "devDependencies": {
+    "jscs": "^2.0.0",
     "st": "^0.5.5",
     "tap-spec": "^4.0.2",
     "tape": "^4.0.1"
