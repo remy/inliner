@@ -92,4 +92,8 @@ if (argv.verbose) {
   inliner.on('jobs', function jobs(event) {
     console.error(event);
   });
+
+  inliner.on('fallbacks', function fallbacks(event) {
+    console.error(event);
+  });
 }
