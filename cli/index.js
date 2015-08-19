@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 
+var minimist = require('minimist');
 var readFileSync = require('fs').readFileSync;
 
-var argv = require('minimist')(process.argv.slice(2), opts={
-  'boolean': ['V', 'h', 'd', 'v', 'i', 'n',],
-  'alias': {
+var argv = minimist(process.argv.slice(2), opts = {
+  boolean: ['V', 'h', 'd', 'v', 'i', 'n',],
+  string: ['e',],
+  alias: {
     V: 'version',
     h: 'help',
     d: 'debug',
     v: 'verbose',
     i: 'images',
     n: 'nocompress',
+    e: 'encoding',
   },
 });
 
