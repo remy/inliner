@@ -3,7 +3,7 @@
 
     $ inliner [options] url-or-filename
 
-  Options:
+  Flags:
 
     -h, --help        output usage information
     -V, --version     output the version number
@@ -11,9 +11,14 @@
     -n, --nocompress  don't compress CSS or HTML - useful for debugging
     -i, --images      don't encode images - keeps files size small, but more requests
 
+  Options:
+
+    -e, --encoding    attempt to transcode the page from the specified encoding to utf-8
+
   Examples:
 
     $ inliner -v https://twitter.com > twitter.html
     $ inliner -ni local-file.html > local-file.min.html
+    $ inliner -e windows-1253 http://foofootos.gr > foofootos-utf8.html
 
   For more details see http://github.com/remy/inliner/

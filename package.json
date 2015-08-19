@@ -19,6 +19,7 @@
     "cheerio": "^0.19.0",
     "debug": "^2.2.0",
     "es6-promise": "^2.3.0",
+    "iconv-lite": "^0.4.11",
     "lodash.assign": "^3.2.0",
     "lodash.defaults": "^3.1.2",
     "lodash.foreach": "^3.0.3",
