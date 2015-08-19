@@ -2,32 +2,17 @@
 
 var readFileSync = require('fs').readFileSync;
 
-var alias = {
-  V: 'version',
-  h: 'help',
-  d: 'debug',
-  v: 'verbose',
-  i: 'images',
-  n: 'nocompress',
-};
-
-var argv = process.argv.slice(2).reduce(function reduce(acc, arg) {
-  if (arg.indexOf('-') === 0) {
-    arg = arg.slice(1);
-
-    if (alias[arg] !== undefined) {
-      acc[alias[arg]] = true;
-    } else if (arg.indexOf('-') === 0) {
-      acc[arg.slice(1)] = true;
-    } else {
-      acc[arg] = true;
-    }
-  } else {
-    acc._.push(arg);
-  }
-
-  return acc;
-}, { _: [] });
+var argv = require('minimist')(process.argv.slice(2), opts={
+  'boolean': ['V', 'h', 'd', 'v', 'i', 'n',],
+  'alias': {
+    V: 'version',
+    h: 'help',
+    d: 'debug',
+    v: 'verbose',
+    i: 'images',
+    n: 'nocompress',
+  },
+});
 
 if (argv.debug) {
   require('debug').enable('inliner');
