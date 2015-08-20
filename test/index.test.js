@@ -58,8 +58,17 @@ test('inliner fixtures', function fixtureTests(t) {
   server.on('listening', function listening() {
     Promise.all(results).then(function then(results) {
       return Promise.all(files.map(function map(file, i) {
+        // Read test-specific command line arguments.
+        var optsfile = file.replace('.src.html', '.opts.json');
+        try {
+          var opts = require(optsfile);
+        }
+        catch(e) {
+          var opts = {};
+        }
+
         return new Promise(function inlinerPromise(resolve, reject) {
-          new Inliner(file, function callback(error, html) {
+          new Inliner(file, opts, function callback(error, html) {
             var basename = path.basename(file);
             if (error) {
               error.message += ' @ ' + basename;
