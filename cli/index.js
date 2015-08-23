@@ -3,9 +3,9 @@
 var minimist = require('minimist');
 var readFileSync = require('fs').readFileSync;
 
-var argv = minimist(process.argv.slice(2), opts = {
-  boolean: ['V', 'h', 'd', 'v', 'i', 'n',],
-  string: ['e',],
+var argv = minimist(process.argv.slice(2), {
+  boolean: ['V', 'h', 'd', 'v', 'i', 'n', ],
+  string: ['e', ],
   alias: {
     V: 'version',
     h: 'help',
@@ -32,9 +32,9 @@ require('update-notifier')({
 var Inliner = require('../');
 var url = argv._.shift();
 
-var argvKeys = Object.keys(argv).filter(function filter(item) {
-  return item !== '_';
-});
+var argvKeys = Object.keys(argv).map(function filter(item) {
+  return item === '_' ? false : argv[item];
+}).filter(Boolean);
 
 if (!url && argvKeys.length === 0 || argv.help) {
   var usage = readFileSync(
@@ -56,8 +56,9 @@ if (argv.nocompress) {
 }
 
 options.images = !argv.images;
+options.encoding = argv.encoding;
 
-var inliner = new Inliner(url, argv, function result(error, html) {
+var inliner = new Inliner(url, options, function result(error, html) {
   if (error) {
     var message = Inliner.errors[error.code] || error.message;
     console.error(message);
