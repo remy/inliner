@@ -1,7 +1,7 @@
 
   Usage:
 
-    $ inliner [options] url-or-filename
+    $ inliner [flags] url-or-filename
 
   Flags:
 
@@ -13,7 +13,7 @@
 
   Options:
 
-    -e, --encoding    attempt to transcode the page from the specified encoding to utf-8
+    -e, --encoding    override encoding detection
 
   Examples:
 

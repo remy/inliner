@@ -5,6 +5,7 @@ var fs = require('then-fs');
 var path = require('path');
 var tapSpec = require('tap-spec');
 var http = require('http');
+var debug = require('debug')('inliner:test');
 var st = require('st');
 
 test.createStream().pipe(tapSpec()).pipe(process.stdout);
@@ -74,7 +75,8 @@ test('inliner fixtures', function fixtureTests(t) {
               error.message += ' @ ' + basename;
               return reject(error);
             }
-            t.equal(html.trim(), results[i].trim(), basename + ' matches');
+            t.ok(html.trim() === results[i].trim(), basename + ' matches');
+            debug(results[i].trim());
             resolve();
           });
         });
