@@ -2,10 +2,11 @@
 
 var minimist = require('minimist');
 var readFileSync = require('fs').readFileSync;
+var util = require('util');
 
 var argv = minimist(process.argv.slice(2), {
   boolean: ['V', 'h', 'd', 'v', 'i', 'n', ],
-  string: ['e', ],
+  string: ['e', 'u',],
   alias: {
     V: 'version',
     h: 'help',
@@ -14,6 +15,7 @@ var argv = minimist(process.argv.slice(2), {
     i: 'images',
     n: 'nocompress',
     e: 'encoding',
+    u: ['user-agent', 'useragent',],
   },
 });
 
@@ -58,6 +60,16 @@ if (argv.nocompress) {
 options.images = !argv.images;
 options.encoding = argv.encoding;
 
+if (argv.useragent) {
+  options.ua = argv.useragent;
+} else {
+  options.ua = util.format(
+    'inliner/%s (+%s)',
+    pkg.version || 'dev',
+    pkg.homepage
+  );
+}
+
 var inliner = new Inliner(url, options, function result(error, html) {
   if (error) {
     var message = Inliner.errors[error.code] || error.message;
@@ -79,6 +91,10 @@ if (argv.verbose) {
   });
 
   inliner.on('jobs', function jobs(event) {
+    console.error(event);
+  });
+
+  inliner.on('fallbacks', function fallbacks(event) {
     console.error(event);
   });
 }
