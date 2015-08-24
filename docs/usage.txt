@@ -14,6 +14,7 @@
   Options:
 
     -e, --encoding    override encoding detection
+    -u, --user-agent  override default user agent
 
   Examples:
 
