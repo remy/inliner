@@ -1,33 +1,21 @@
 #!/usr/bin/env node
 
+var minimist = require('minimist');
 var readFileSync = require('fs').readFileSync;
 
-var alias = {
-  V: 'version',
-  h: 'help',
-  d: 'debug',
-  v: 'verbose',
-  i: 'images',
-  n: 'nocompress',
-};
-
-var argv = process.argv.slice(2).reduce(function reduce(acc, arg) {
-  if (arg.indexOf('-') === 0) {
-    arg = arg.slice(1);
-
-    if (alias[arg] !== undefined) {
-      acc[alias[arg]] = true;
-    } else if (arg.indexOf('-') === 0) {
-      acc[arg.slice(1)] = true;
-    } else {
-      acc[arg] = true;
-    }
-  } else {
-    acc._.push(arg);
-  }
-
-  return acc;
-}, { _: [] });
+var argv = minimist(process.argv.slice(2), {
+  boolean: ['V', 'h', 'd', 'v', 'i', 'n', ],
+  string: ['e', ],
+  alias: {
+    V: 'version',
+    h: 'help',
+    d: 'debug',
+    v: 'verbose',
+    i: 'images',
+    n: 'nocompress',
+    e: 'encoding',
+  },
+});
 
 if (argv.debug) {
   require('debug').enable('inliner');
@@ -44,9 +32,9 @@ require('update-notifier')({
 var Inliner = require('../');
 var url = argv._.shift();
 
-var argvKeys = Object.keys(argv).filter(function filter(item) {
-  return item !== '_';
-});
+var argvKeys = Object.keys(argv).map(function filter(item) {
+  return item === '_' ? false : argv[item];
+}).filter(Boolean);
 
 if (!url && argvKeys.length === 0 || argv.help) {
   var usage = readFileSync(
@@ -68,8 +56,9 @@ if (argv.nocompress) {
 }
 
 options.images = !argv.images;
+options.encoding = argv.encoding;
 
-var inliner = new Inliner(url, argv, function result(error, html) {
+var inliner = new Inliner(url, options, function result(error, html) {
   if (error) {
     var message = Inliner.errors[error.code] || error.message;
     console.error(message);
