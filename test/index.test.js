@@ -61,12 +61,10 @@ test('inliner fixtures', function fixtureTests(t) {
       return Promise.all(files.map(function map(file, i) {
         // Read test-specific command line arguments.
         var optsfile = file.replace('.src.html', '.opts.json');
+        var opts = {};
         try {
-          var opts = require(optsfile);
-        }
-        catch(e) {
-          var opts = {};
-        }
+          opts = require(optsfile);
+        } catch (e) {}
 
         return new Promise(function inlinerPromise(resolve, reject) {
           new Inliner(file, opts, function callback(error, html) {
@@ -76,7 +74,8 @@ test('inliner fixtures', function fixtureTests(t) {
               return reject(error);
             }
             t.ok(html.trim() === results[i].trim(), basename + ' matches');
-            debug(results[i].trim());
+            debug('result', html.trim());
+            // debug('expected', results[i].trim());
             resolve();
           });
         });

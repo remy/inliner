@@ -5,11 +5,12 @@
 
   Flags:
 
-    -h, --help        output usage information
-    -V, --version     output the version number
-    -v, --verbose     echo on STDERR the progress of inlining
     -n, --nocompress  don't compress CSS or HTML - useful for debugging
-    -i, --images      don't encode images - keeps files size small, but more requests
+    -i, --noimages    don't encode images - keeps files size small, but more requests
+    -s, --nosvg       don't compress SVG (through SVGO)
+    -v, --verbose     echo on STDERR the progress of inlining
+    -V, --version     output the version number
+    -h, --help        output usage information
 
   Options:
 
