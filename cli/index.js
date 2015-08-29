@@ -53,6 +53,10 @@ function main() {
     pkg: defaults(pkg, { version: '0.0.0' }),
   }).notify();
 
+  inliner.on('warning', function progress(event) {
+    console.warn('warning: ' + event);
+  });
+
   if (argv.verbose) {
     inliner.on('progress', function progress(event) {
       console.error(event);
