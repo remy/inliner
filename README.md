@@ -6,10 +6,10 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 
 ## What it does
 
-- Get a list of all the assets required to drive the page: CSS, JavaScript, images and images used in CSS
+- Get a list of all the assets required to drive the page: CSS, JavaScript, images, videos and images used in CSS
 - Minify JavaScript (via [uglify-js](https://github.com/mishoo/UglifyJS "mishoo/UglifyJS - GitHub"))
 - Strips white from CSS
-- Base64 encode images
+- Base64 encode images and videos
 - Puts everything back together as a single HTML file with a simplfied doctype
 
 ## Installation
@@ -56,7 +56,7 @@ Once you've inlined the crap out of the page, add the `manifest="self.appcache"`
 - Strips all HTML comments
 - Pulls JavaScript and CSS inline to HTML
 - Compresses JavaScript via uglify (if not compressed already)
-- Converts all images to based64 data urls, both inline images and CSS images
+- Converts all images and videos to based64 data urls, inline images, video poster images and CSS images
 - Imports all @import rules from CSS (recusively)
 - Applies media query rules (for print, tv, etc media types)
 - Leaves conditional comments in place

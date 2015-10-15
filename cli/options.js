@@ -11,6 +11,7 @@ function options(args) {
       'verbose',
       'noimages',
       'nosvg',
+      'videos',
     ],
     string: [ // options
       'encoding',
@@ -25,6 +26,7 @@ function options(args) {
       n: 'nocompress',
       e: 'encoding',
       s: 'nosvg',
+      o: 'videos',
     },
   });
 

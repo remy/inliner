@@ -7,6 +7,7 @@
 
     -n, --nocompress  don't compress CSS or HTML - useful for debugging
     -i, --noimages    don't encode images - keeps files size small, but more requests
+    -o, --videos      encode videos (and their poster image) - disabled by default
     -s, --nosvg       don't compress SVG (through SVGO)
     -v, --verbose     echo on STDERR the progress of inlining
     -V, --version     output the version number
