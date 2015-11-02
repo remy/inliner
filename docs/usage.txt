@@ -12,6 +12,7 @@
     -v, --verbose     echo on STDERR the progress of inlining
     -V, --version     output the version number
     -h, --help        output usage information
+    -m, --inlinemin   inline minified files
 
   Options:
 
