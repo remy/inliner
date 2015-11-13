@@ -20,6 +20,11 @@ test('inliner core functions', function coreTests(t) {
   var inliner = new Inliner();
   t.ok(inliner, 'inline is instantiated');
 
+  var roundtripHTML = '<!DOCTYPE html><html></html>';
+  new Inliner(roundtripHTML, function(error, html) {
+    t.equal(html, roundtripHTML, 'recognizes HTML as main input');
+  });
+
   t.end();
 });
 
