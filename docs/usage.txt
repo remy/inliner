@@ -3,6 +3,8 @@
 
     $ inliner [flags] url-or-filename
 
+  Inliner also supports HTML being piped and will inline from STDIN.
+
   Flags:
 
     -n, --nocompress  don't compress CSS or HTML - useful for debugging
@@ -22,5 +24,6 @@
     $ inliner -v https://twitter.com > twitter.html
     $ inliner -ni local-file.html > local-file.min.html
     $ inliner -e windows-1253 http://foofootos.gr > foofootos-utf8.html
+    $ cat local-file.html | inliner
 
   For more details see http://github.com/remy/inliner/

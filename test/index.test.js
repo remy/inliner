@@ -13,6 +13,8 @@ test.createStream().pipe(tapSpec()).pipe(process.stdout);
 test('inliner core functions', function coreTests(t) {
   var Inliner = require('../');
 
+  t.plan(4);
+
   t.equal(typeof Inliner, 'function', 'Inliner is a function');
   t.equal(Inliner.version,
     require('../package.json').version, 'should have version');
@@ -20,7 +22,10 @@ test('inliner core functions', function coreTests(t) {
   var inliner = new Inliner();
   t.ok(inliner, 'inline is instantiated');
 
-  t.end();
+  var roundtripHTML = '<!DOCTYPE html><html></html>';
+  new Inliner(roundtripHTML, function(error, html) {
+    t.equal(html, roundtripHTML, 'recognizes HTML as main input');
+  });
 });
 
 test('inliner fixtures', function fixtureTests(t) {
