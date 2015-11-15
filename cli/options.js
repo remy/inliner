@@ -37,5 +37,7 @@ function options(args) {
   }
   argv.images = !argv.noimages;
 
+  argv.useStdin = !process.stdin.isTTY;
+
   return argv;
 }
