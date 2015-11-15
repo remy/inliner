@@ -38,11 +38,11 @@ function main() {
 
       var data = '';
 
-      process.stdin.on('data', function(chunk) {
+      process.stdin.on('data', function (chunk) {
         data += chunk;
       });
 
-      process.stdin.on('end', function() {
+      process.stdin.on('end', function () {
         resolve(data);
       });
     });
