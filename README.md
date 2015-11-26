@@ -68,4 +68,4 @@ Once you've inlined the crap out of the page, add the `manifest="self.appcache"`
 
 ## Filing issues & PRs
 
-Please see the [contributing](CONTRIBUTING.md) for guidelines.
+Please see the [contributing](https://github.com/remy/inliner/blob/master/CONTRIBUTING.md) for guidelines.
