@@ -11,7 +11,7 @@ When these are put in the [fixtures](https://github.com/remy/inliner/tree/master
 
 If there are any external assets the example needs, please also include these and name them with the same root as your example, i.e. `<issue>.css` or `<issue>.min.js` etc.
 
-In addition `<issue>.opt.json` can be loaded to help specify runtime options during the test. 
+In addition `<issue>.opts.json` can be loaded to help specify runtime options during the test. 
 
 **To test a single fixture you can use: `npm test <issue>`**
 
