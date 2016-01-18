@@ -69,6 +69,7 @@ test('inliner fixtures', function fixtureTests(t) {
         var opts = {};
         try {
           opts = require(optsfile);
+          debug('loaded options %s', optsfile, opts);
         } catch (e) {}
 
         return new Promise(function inlinerPromise(resolve, reject) {
