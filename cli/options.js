@@ -30,6 +30,7 @@ function options(args) {
       s: 'nosvg',
       o: 'videos',
       m: 'inlinemin',
+      H: 'header',
     },
   });
 
