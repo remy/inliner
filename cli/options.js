@@ -12,7 +12,7 @@ function options(args) {
       'noimages',
       'nocompress',
       'nosvg',
-      'noremote',
+      'same-origin-only',
       'videos',
       'inlinemin',
     ],
@@ -29,7 +29,6 @@ function options(args) {
       n: 'nocompress',
       e: 'encoding',
       s: 'nosvg',
-      r: 'noremote',
       o: 'videos',
       m: 'inlinemin',
       H: 'header',
@@ -41,6 +40,9 @@ function options(args) {
     argv.compressCSS = false;
     argv.compressJS = false;
     argv.collapseWhitespace = false;
+  }
+  if (argv['same-origin-only']) {
+    argv.sameOriginOnly = true;
   }
   argv.images = !argv.noimages;
 
