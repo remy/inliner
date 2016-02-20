@@ -11,6 +11,7 @@
     -i, --noimages      don't encode images - keeps files size small, but more requests
     -o, --videos        encode videos (and their poster image) - disabled by default
     -s, --nosvg         don't compress SVG (through SVGO)
+    -r, --noremote      don't inline remote URLs (only local files)
     -v, --verbose       echo on STDERR the progress of inlining
     -V, --version       output the version number
     -h, --help          output usage information
