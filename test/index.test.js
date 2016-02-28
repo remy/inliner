@@ -1,14 +1,22 @@
-'use strict';
-var test = require('tape');
+var test = require('tap-only');
 var Promise = require('es6-promise').Promise; // jshint ignore:line
 var fs = require('then-fs');
 var path = require('path');
-var tapSpec = require('tap-spec');
 var http = require('http');
 var debug = require('debug')('inliner:test');
 var st = require('st');
+var server;
 
-test.createStream().pipe(tapSpec()).pipe(process.stdout);
+test('setup mock server', function (t) {
+  server = http.createServer(
+    st(path.resolve(__dirname, 'fixtures'))
+  ).listen(54321);
+
+  server.on('listening', function listening() {
+    t.pass('mock server ready');
+    t.end();
+  });
+});
 
 test('inliner core functions', function coreTests(t) {
   var Inliner = require('../');
@@ -28,14 +36,28 @@ test('inliner core functions', function coreTests(t) {
   });
 });
 
-test('inliner fixtures', function fixtureTests(t) {
-  var testFilter = process.argv.slice(-1).pop();
-  var testOffset = 1;
+test('failures', function failureTests(t) {
+  var Inliner = require('../');
+  var throwBack = function (e) { return e; };
+  return Promise.all([
+    'http://localhost:11111_11',
+    'http://localhost:11111',
+    'http://localhost:1111'].map(function (url) {
+      return (new Inliner('http://localhost:11111_11').promise).catch(throwBack).then(function (res) {
+        t.ok(res instanceof Error, url + ' throws error');
+      });
+    }));
+});
 
-  if (testFilter === '--cov') { // this is part of our npm test command
-    testFilter = null;
-    testOffset = 0;
-  } else {
+test('inliner fixtures', function fixtureTests(t) {
+  var testFilter = Object.keys(process.env).map(function (key) {
+    if (key.toLowerCase() === 'filter') {
+      return process.env[key];
+    }
+    return false;
+  }).filter(Boolean).shift();
+
+  if (testFilter) {
     t.pass('filtering against ' + testFilter + '.src.html');
   }
 
@@ -55,42 +77,35 @@ test('inliner fixtures', function fixtureTests(t) {
     return file;
   });
 
-  t.plan(files.length + testOffset);
+  Promise.all(results).then(function then(results) {
+    return Promise.all(files.map(function map(file, i) {
+      // Read test-specific command line arguments.
+      var optsfile = file.replace('.src.html', '.opts.json');
+      var opts = {};
+      try {
+        opts = require(optsfile);
+        debug('loaded options %s', optsfile, opts);
+      } catch (e) {}
 
-  var server = http.createServer(
-    st(path.resolve(__dirname, 'fixtures'))
-  ).listen(54321);
-
-  server.on('listening', function listening() {
-    Promise.all(results).then(function then(results) {
-      return Promise.all(files.map(function map(file, i) {
-        // Read test-specific command line arguments.
-        var optsfile = file.replace('.src.html', '.opts.json');
-        var opts = {};
-        try {
-          opts = require(optsfile);
-          debug('loaded options %s', optsfile, opts);
-        } catch (e) {}
-
-        return new Promise(function inlinerPromise(resolve, reject) {
-          new Inliner(file, opts, function callback(error, html) {
-            var basename = path.basename(file);
-            if (error) {
-              error.message += ' @ ' + basename;
-              return reject(error);
-            }
-            t.ok(html.trim() === results[i].trim(), basename + ' matches');
-            debug('result', html.trim());
-            // debug('expected', results[i].trim());
-            resolve();
-          });
+      return new Promise(function inlinerPromise(resolve, reject) {
+        new Inliner(file, opts, function callback(error, html) {
+          var basename = path.basename(file);
+          if (error) {
+            error.message += ' @ ' + basename;
+            return reject(error);
+          }
+          t.equal(html.trim(), results[i].trim(), basename + ' matches');
+          debug('result', html.trim());
+          // debug('expected', results[i].trim());
+          resolve();
         });
-      }));
-    }).catch(function errHandler(error) {
-      t.fail(error.message);
-      console.log(error.stack);
-    }).then(function close() {
-      server.close();
-    });
-  });
+      });
+    }));
+  }).catch(t.threw).then(t.end);
+});
+
+test('tear down', function (t) {
+  server.close();
+  t.pass('tear down complete');
+  t.end();
 });
