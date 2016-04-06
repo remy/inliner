@@ -11,12 +11,12 @@
     -i, --noimages      don't encode images - keeps files size small, but more requests
     -o, --videos        encode videos (and their poster image) - disabled by default
     -s, --nosvg         don't compress SVG (through SVGO)
-        --same-origin-only
-                        don't inline files with URLs on other hosts (only local files)
     -v, --verbose       echo on STDERR the progress of inlining
     -V, --version       output the version number
     -h, --help          output usage information
     -m, --inlinemin     inline minified files
+    --skip-absolute-urls
+                        don't inline files with fully-qualified absolute URLs
 
   Options:
 

@@ -12,7 +12,7 @@ function options(args) {
       'noimages',
       'nocompress',
       'nosvg',
-      'same-origin-only',
+      'skip-absolute-urls',
       'videos',
       'inlinemin',
     ],
@@ -41,8 +41,8 @@ function options(args) {
     argv.compressJS = false;
     argv.collapseWhitespace = false;
   }
-  if (argv['same-origin-only']) {
-    argv.sameOriginOnly = true;
+  if (argv['skip-absolute-urls']) {
+    argv.skipAbsoluteUrls = true;
   }
   argv.images = !argv.noimages;
 
