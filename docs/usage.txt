@@ -7,16 +7,14 @@
 
   Flags:
 
-    -n, --nocompress    don't compress CSS or HTML - useful for debugging
-    -i, --noimages      don't encode images - keeps files size small, but more requests
-    -o, --videos        encode videos (and their poster image) - disabled by default
-    -s, --nosvg         don't compress SVG (through SVGO)
-    -v, --verbose       echo on STDERR the progress of inlining
-    -V, --version       output the version number
-    -h, --help          output usage information
-    -m, --inlinemin     inline minified files
-    --skip-absolute-urls
-                        don't inline files with fully-qualified absolute URLs
+    -n, --nocompress      don't compress CSS or HTML - useful for debugging
+    -i, --noimages        don't encode images - keeps files size small, but more requests
+    -m, --inlinemin       inline minified files
+    --videos              encode videos (and their poster image) - disabled by default
+    --nosvg               don't compress SVG (through SVGO)
+    --skip-absolute-urls  don't inline links with absolute URLs
+    -V, --version         output the version number
+    -h, --help            output usage information
 
   Options:
 
@@ -25,7 +23,7 @@
 
   Examples:
 
-    $ inliner -v https://twitter.com > twitter.html
+    $ inliner https://twitter.com > twitter.html
     $ inliner -ni local-file.html > local-file.min.html
     $ inliner -e windows-1253 http://foofootos.gr > foofootos-utf8.html
     $ inliner -H User-Agent="Inliner Custom" https://httpbin.org/headers
