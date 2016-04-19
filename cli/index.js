@@ -124,7 +124,7 @@ function main() {
       inliner.on('end', function () {
         var diff = process.hrtime(time);
         process.stderr.write(styles.green.open + 'Time: ' + diff[0] + 's ' +
-          (diff[1]/1e6).toFixed(3) + 'ms\n' + styles.green.close);
+          (diff[1] / 1e6).toFixed(3) + 'ms\n' + styles.green.close);
         process.stderr.write(ansi.cursorShow);
       });
 
