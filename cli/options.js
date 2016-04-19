@@ -12,6 +12,7 @@ function options(args) {
       'noimages',
       'nocompress',
       'nosvg',
+      'skip-absolute-urls',
       'videos',
       'inlinemin',
     ],
@@ -39,6 +40,9 @@ function options(args) {
     argv.compressCSS = false;
     argv.compressJS = false;
     argv.collapseWhitespace = false;
+  }
+  if (argv['skip-absolute-urls']) {
+    argv.skipAbsoluteUrls = true;
   }
   argv.images = !argv.noimages;
 
