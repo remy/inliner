@@ -6,7 +6,8 @@
   "scripts": {
     "cover": "tap test/*.test.js --cov --coverage-report=lcov",
     "lint": "jscs -v cli/*.js lib/*.js",
-    "test": "npm run lint && tap test/*.test.js --cov -R spec",
+    "tap": "tap test/*.test.js --cov -R spec",
+    "test": "npm run lint && npm run tap",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "keywords": [

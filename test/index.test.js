@@ -36,6 +36,17 @@ test('inliner core functions', function coreTests(t) {
   });
 });
 
+test('inliner handles given source as local', function sourcedTests(t) {
+  var Inliner = require('../');
+
+  t.plan(1);
+
+  var content = fs.readFileSync(__dirname + '/fixtures/css-ext-import.src.html', 'utf8');
+  new Inliner(content, function (error, content) {
+    t.equal(error, null, 'treats local content as file');
+  });
+});
+
 test('failures', function failureTests(t) {
   var Inliner = require('../');
   var throwBack = function (e) { return e; };
