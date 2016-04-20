@@ -48,5 +48,7 @@ function options(args) {
 
   argv.useStdin = !process.stdin.isTTY;
 
+  argv.verbose = !process.stdout.isTTY;
+
   return argv;
 }

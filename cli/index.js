@@ -2,6 +2,7 @@
 
 var readFileSync = require('fs').readFileSync;
 var Promise = require('es6-promise').Promise; // jshint ignore:line
+var ansi = require('ansi-escapes');
 
 main();
 
@@ -48,6 +49,7 @@ function main() {
     });
   }
 
+  var time = process.hrtime();
   p.then(function (source) {
     var inliner = new Inliner(source, argv, function result(error, html) {
       if (error) {
@@ -76,19 +78,66 @@ function main() {
       pkg: defaults(pkg, { version: '0.0.0' }),
     }).notify();
 
-    inliner.on('warning', function progress(event) {
-      console.warn('warning: ' + event);
-    });
-
     if (argv.verbose) {
-      inliner.on('progress', function progress(event) {
-        console.error(event);
+      var styles = require('ansi-styles');
+      console.warn(ansi.cursorHide + '\n\n' + ansi.cursorUp() +
+        ansi.cursorSavePosition);
+
+      var jobs = {};
+      var progress = '';
+      var update = function () {
+        var remaining = jobs.breakdown.join(', ');
+        if (remaining) {
+          remaining = ' remaining: ' + remaining;
+        }
+
+        var str = styles.green.open +
+          (100 - (jobs.todo / jobs.total * 100 | 0)) + '%' +
+          styles.green.close +
+          remaining +
+          styles.gray.open +
+          '\nLast job: ' + progress +
+          styles.gray.close;
+
+        process.stderr.write(
+          ansi.cursorRestorePosition +
+          ansi.cursorLeft +
+          ansi.eraseLines(2) +
+          str.trim() + '\n');
+      };
+
+      inliner.on('progress', function progressEvent(event) {
+        progress = event;
+        update();
       });
 
-      inliner.on('jobs', function jobs(event) {
-        console.error(event);
+      inliner.on('jobs', function jobsEvent(event) {
+        jobs = event;
+        update();
+      });
+
+      inliner.on('warning', function warningEvent(event) {
+        progress = event;
+        update();
+      });
+
+      inliner.on('end', function () {
+        var diff = process.hrtime(time);
+        process.stderr.write(styles.green.open + 'Time: ' + diff[0] + 's ' +
+          (diff[1] / 1e6).toFixed(3) + 'ms\n' + styles.green.close);
+        process.stderr.write(ansi.cursorShow);
+      });
+
+      'exit SIGINT SIGTERM'.split(' ').map(function (event) {
+        process.once(event, function () {
+          process.stderr.write(ansi.cursorShow); // put the cursor back
+          try { process.kill(process.pid, event); } catch (e) {}
+        });
+      });
+    } else {
+      inliner.on('warning', function progress(event) {
+        console.warn('warning: ' + event);
       });
     }
   });
-
 }
