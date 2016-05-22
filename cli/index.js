@@ -98,11 +98,16 @@ function main() {
           '\nLast job: ' + progress +
           styles.gray.close;
 
-        process.stderr.write(
-          ansi.cursorRestorePosition +
-          ansi.cursorLeft +
-          ansi.eraseLines(2) +
-          str.trim() + '\n');
+        if (argv.debug) {
+          process.stderr.write(
+            str.trim() + '\n');
+        } else {
+          process.stderr.write(
+            ansi.cursorRestorePosition +
+            ansi.cursorLeft +
+            ansi.eraseLines(2) +
+            str.trim() + '\n');
+        }
       };
 
       inliner.on('progress', function progressEvent(event) {
@@ -138,5 +143,7 @@ function main() {
         console.warn('warning: ' + event);
       });
     }
+  }).catch(function (error) {
+    console.error(error.stack);
   });
 }
