@@ -8,9 +8,17 @@ var st = require('st');
 var server;
 
 test('setup mock server', function (t) {
-  server = http.createServer(
-    st(path.resolve(__dirname, 'fixtures'))
-  ).listen(54321);
+  server = http.createServer(function(req, res) {
+    if (isASCII(req.url)) {
+      st(path.resolve(__dirname, 'fixtures'))(req, res);
+    }
+    else {
+      // Fail because all non-ascii chars should be urlencoded
+      // (some http servers don't handle non-ascii)
+      res.statusCode = 404;
+      res.end();
+    }
+  }).listen(54321);
 
   server.on('listening', function listening() {
     t.pass('mock server ready');
@@ -120,3 +128,7 @@ test('tear down', function (t) {
   t.pass('tear down complete');
   t.end();
 });
+
+function isASCII(str) {
+  return /^[\x00-\x7F]*$/.test(str);
+}
