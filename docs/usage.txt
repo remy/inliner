@@ -18,7 +18,7 @@
 
   Options:
 
-    -H, --header LINE   custom header pass to the server
+    -H, --header LINE   custom header pass to the server (ala cURL headers)
     -e, --encoding ENC  override encoding detection
 
   Examples:
@@ -26,7 +26,7 @@
     $ inliner https://twitter.com > twitter.html
     $ inliner -ni local-file.html > local-file.min.html
     $ inliner -e windows-1253 http://foofootos.gr > foofootos-utf8.html
-    $ inliner -H User-Agent="Inliner Custom" https://httpbin.org/headers
+    $ inliner -H 'User-Agent: Inliner Custom' https://httpbin.org/headers
     $ cat local-file.html | inliner
 
   For more details see http://github.com/remy/inliner/
