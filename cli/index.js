@@ -78,58 +78,30 @@ function main() {
     }).notify();
 
     if (argv.verbose) {
-      var styles = require('ansi-styles');
-      console.warn(ansi.cursorHide + '\n\n' + ansi.cursorUp() +
-        ansi.cursorSavePosition);
-
       var jobs = {};
+      var update = require('./progress');
       var progress = '';
-      var update = function () {
-        var remaining = jobs.breakdown.join(', ');
-        if (remaining) {
-          remaining = ' remaining: ' + remaining;
-        }
-
-        var str = styles.green.open +
-          (100 - (jobs.todo / jobs.total * 100 | 0)) + '%' +
-          styles.green.close +
-          remaining +
-          styles.gray.open +
-          '\nLast job: ' + progress +
-          styles.gray.close;
-
-        if (argv.debug) {
-          process.stderr.write(
-            str.trim() + '\n');
-        } else {
-          process.stderr.write(
-            ansi.cursorRestorePosition +
-            ansi.cursorLeft +
-            ansi.eraseLines(2) +
-            str.trim() + '\n');
-        }
-      };
 
       inliner.on('progress', function progressEvent(event) {
         progress = event;
-        update();
+        // console.log(JSON.stringify({ type: 'progress', progress, jobs }));
+        update(event, jobs, argv.debug);
       });
 
       inliner.on('jobs', function jobsEvent(event) {
         jobs = event;
-        update();
+        // console.log(JSON.stringify({ type: 'jobs', progress, jobs }));
+        update(progress, jobs, argv.debug);
       });
 
       inliner.on('warning', function warningEvent(event) {
         progress = event;
-        update();
+        // console.log(JSON.stringify({ type: 'warning', progress, jobs }));
+        update(event, jobs, true);
       });
 
       inliner.on('end', function () {
-        var diff = process.hrtime(time);
-        process.stderr.write(styles.green.open + 'Time: ' + diff[0] + 's ' +
-          (diff[1] / 1e6).toFixed(3) + 'ms\n' + styles.green.close);
-        process.stderr.write(ansi.cursorShow);
+        update.end(time);
       });
 
       'exit SIGINT SIGTERM'.split(' ').map(function (event) {
