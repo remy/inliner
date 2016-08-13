@@ -48,7 +48,7 @@ Or:
       console.log(html);
     });
 
-Once you've inlined the crap out of the page, add the `manifest="self.appcache"` to the `html` tag and create an empty file called self.appcache ([read more](http://remysharp.com/2011/01/31/simple-offline-application/)).
+Once you've inlined the crap out of the page, you can optionally configure a [service worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers) to add advanced caching and offline functionality.
 
 ## Support
 
