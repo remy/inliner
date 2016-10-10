@@ -15,6 +15,7 @@ function options(args) {
       'skip-absolute-urls',
       'videos',
       'inlinemin',
+      'preserve-comments',
     ],
     string: [ // options
       'encoding',
@@ -32,6 +33,7 @@ function options(args) {
       o: 'videos',
       m: 'inlinemin',
       H: 'header',
+      c: 'preserve-comments',
     },
   });
 
@@ -41,6 +43,10 @@ function options(args) {
     argv.compressJS = false;
     argv.collapseWhitespace = false;
   }
+  if (argv['preserve-comments']) {
+    argv.preserveComments = true;
+  }
+
   if (argv['skip-absolute-urls']) {
     argv.skipAbsoluteUrls = true;
   }
