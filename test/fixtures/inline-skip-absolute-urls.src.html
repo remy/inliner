@@ -7,11 +7,17 @@
 <body>
 <script src="script-local.js"></script>
 <script src="https://cdn.rawgit.com/zloirock/core-js/master/client/shim.min.js"></script>
+<link rel="icon" type="image/png" href="colour.png">
+<link rel="icon" type="image/png" href="http://localhost:54321/colour.png">
+<link rel="shortcut icon" type="image/png" href="colour.png">
+<link rel="shortcut icon" type="image/png" href="http://localhost:54321/colour.png">
 <link href="import.css" rel="stylesheet" type="text/css" />
 <link href="http://localhost:54321/css-ext-import.css" rel="stylesheet" />
 <img src="1x1.gif">
 <img src="http://localhost:54321/image.jpg">
 <video src="video.webm" poster="1x1.gif"></video>
-<video src="http://localhost:54321/video.webm?name=value"></video>
+<video src="video.webm" poster="http://localhost:54321/1x1.gif?name=value"></video>
+<video src="http://localhost:54321/video.webm?name=value" poster="1x1.gif"></video>
+<video src="http://localhost:54321/video.webm?name=value" poster="http://localhost:54321/1x1.gif?name=value"></video>
 </body>
 </html>
