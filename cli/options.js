@@ -15,6 +15,7 @@ function options(args) {
       'skip-absolute-urls',
       'videos',
       'inlinemin',
+      'nocache',
     ],
     string: [ // options
       'encoding',
@@ -32,6 +33,7 @@ function options(args) {
       o: 'videos',
       m: 'inlinemin',
       H: 'header',
+      c: 'nocache',
     },
   });
 
@@ -49,6 +51,8 @@ function options(args) {
   argv.useStdin = !process.stdin.isTTY;
 
   argv.verbose = argv.verbose || !process.stdout.isTTY;
+
+  argv.cache = !argv.nocache;
 
   return argv;
 }
