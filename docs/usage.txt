@@ -10,6 +10,7 @@
     -n, --nocompress      don't compress CSS or HTML - useful for debugging
     -i, --noimages        don't encode images - keeps files size small, but more requests
     -m, --inlinemin       inline minified files
+    --iesafe              safe JS compression for older IE 6/7/8
     --videos              encode videos (and their poster image) - disabled by default
     --nosvg               don't compress SVG (through SVGO)
     --skip-absolute-urls  don't inline links with absolute URLs

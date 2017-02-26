@@ -16,6 +16,7 @@ function options(args) {
       'videos',
       'inlinemin',
       'preserve-comments',
+      'iesafe',
     ],
     string: [ // options
       'encoding',
