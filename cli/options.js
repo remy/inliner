@@ -33,6 +33,7 @@ function options(args) {
       o: 'videos',
       m: 'inlinemin',
       H: 'header',
+      c: 'preserve-comments',
     },
   });
 
