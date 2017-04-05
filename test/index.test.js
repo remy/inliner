@@ -8,7 +8,7 @@ var st = require('st');
 var server;
 
 test('setup mock server', function (t) {
-  server = http.createServer(function(req, res) {
+  server = http.createServer(function (req, res) {
     if (isASCII(req.url)) {
       st(path.resolve(__dirname, 'fixtures'))(req, res);
     }
@@ -39,7 +39,7 @@ test('inliner core functions', function coreTests(t) {
   t.ok(inliner, 'inline is instantiated');
 
   var roundtripHTML = '<!DOCTYPE html><html></html>';
-  new Inliner(roundtripHTML, function(error, html) {
+  new Inliner(roundtripHTML, function (error, html) {
     t.equal(html, roundtripHTML, 'recognizes HTML as main input');
   });
 });
@@ -50,7 +50,7 @@ test('inliner handles given source as local', function sourcedTests(t) {
   t.plan(1);
 
   var content = fs.readFileSync(__dirname + '/fixtures/css-ext-import.src.html', 'utf8');
-  new Inliner(content, function (error, content) {
+  new Inliner(content, function (error) {
     t.equal(error, null, 'treats local content as file');
   });
 });
