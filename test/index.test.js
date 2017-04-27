@@ -32,8 +32,6 @@ test('inliner core functions', function coreTests(t) {
   t.plan(4);
 
   t.equal(typeof Inliner, 'function', 'Inliner is a function');
-  t.equal(Inliner.version,
-    require('../package.json').version, 'should have version');
 
   var inliner = new Inliner();
   t.ok(inliner, 'inline is instantiated');
