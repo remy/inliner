@@ -29,7 +29,7 @@ test('setup mock server', function (t) {
 test('inliner core functions', function coreTests(t) {
   var Inliner = require('../');
 
-  t.plan(4);
+  t.plan(3);
 
   t.equal(typeof Inliner, 'function', 'Inliner is a function');
 
