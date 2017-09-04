@@ -1,5 +1,7 @@
 # Inliner
 
+<a href="https://app.codesponsor.io/link/wnz2te8CdfKZ8wMjGUpi8EZG/remy/inliner" rel="nofollow"><img src="https://app.codesponsor.io/embed/wnz2te8CdfKZ8wMjGUpi8EZG/remy/inliner.svg" style="width: 888px; height: 68px;" alt="Sponsor" /></a>
+
 Turns your web page to a single HTML file with everything inlined - perfect for appcache manifests on mobile devices that you want to reduce those http requests.
 
 [![Build Status](https://travis-ci.org/remy/inliner.svg)](https://travis-ci.org/remy/inliner)
