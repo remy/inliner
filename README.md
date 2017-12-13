@@ -69,3 +69,5 @@ Once you've inlined the crap out of the page, you can optionally configure a [se
 ## Filing issues & PRs
 
 Please see the [contributing](https://github.com/remy/inliner/blob/master/CONTRIBUTING.md) for guidelines.
+
+<a href="https://app.codesponsor.io/link/wnz2te8CdfKZ8wMjGUpi8EZG/remy/inliner" rel="nofollow"><img src="https://app.codesponsor.io/embed/wnz2te8CdfKZ8wMjGUpi8EZG/remy/inliner.svg" style="width: 888px; height: 68px;" alt="Sponsor" /></a>
