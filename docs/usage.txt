@@ -20,8 +20,10 @@
 
   Options:
 
-    -H, --header LINE   custom header pass to the server (ala cURL headers)
-    -e, --encoding ENC  override encoding detection
+    -H, --header LINE            custom header pass to the server (ala cURL headers)
+    -e, --encoding ENC           override encoding detection
+    --resize-image-width WIDTH   resize image to WIDTH before inlining.
+    --resize-quality QUALITY     JPEG quality for image. default "80"
 
   Examples:
 
