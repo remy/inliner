@@ -21,6 +21,10 @@ function options(args) {
     string: [ // options
       'encoding',
     ],
+    integer: [ // integers
+      'resize-image-width',
+      'resize-quality',
+    ],
     alias: {
       images: 'noimages', // legacy support
       V: 'version',
