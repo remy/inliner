@@ -10,7 +10,7 @@ Turns your web page to a single HTML file with everything inlined - perfect for 
 - Minify JavaScript (via [uglify-js](https://github.com/mishoo/UglifyJS "mishoo/UglifyJS - GitHub"))
 - Strips white from CSS
 - Base64 encode images and videos
-- Puts everything back together as a single HTML file with a simplfied doctype
+- Puts everything back together as a single HTML file with a simplified doctype
 
 ## Installation
 
