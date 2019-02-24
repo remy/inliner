@@ -20,8 +20,9 @@
 
   Options:
 
-    -H, --header LINE   custom header pass to the server (ala cURL headers)
-    -e, --encoding ENC  override encoding detection
+    -H, --header LINE     custom header pass to the server (ala cURL headers)
+    -e, --encoding ENC    override encoding detection
+    -b, --baseurl BASEURL use baseurl to fetch assets with relative paths
 
   Examples:
 

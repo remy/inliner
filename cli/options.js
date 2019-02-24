@@ -20,6 +20,7 @@ function options(args) {
     ],
     string: [ // options
       'encoding',
+      'baseurl',
     ],
     alias: {
       images: 'noimages', // legacy support
@@ -34,6 +35,7 @@ function options(args) {
       o: 'videos',
       m: 'inlinemin',
       H: 'header',
+      b: 'baseurl',
     },
   });
 
