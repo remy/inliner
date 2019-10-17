@@ -60,7 +60,7 @@
     "ghooks": "^1.1.1",
     "jscs": "^2.0.0",
     "semantic-release": "^4.0.0",
-    "st": "^0.5.5",
+    "st": "^1.2.2",
     "tap": "^5.4.2",
     "tap-only": "0.0.5",
     "validate-commit-msg": "^2.5.0"
