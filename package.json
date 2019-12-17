@@ -1,5 +1,5 @@
 {
-  "name": "@tauri-apps/inliner",
+  "name": "@tauri-apps/tauri-inliner",
   "version": "1.13.0",
   "description": "Utility to inline images, CSS and JavaScript for a web page - useful for mobile sites",
   "homepage": "http://github.com/tauri-apps/tauri-inliner",
@@ -62,7 +62,7 @@
     "jscs": "^2.0.0",
     "semantic-release": "^4.0.0",
     "st": "^0.5.5",
-    "tap": "^5.4.2",
+    "tap": "^14.10.4",
     "tap-only": "0.0.5",
     "validate-commit-msg": "^2.5.0"
   },
