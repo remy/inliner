@@ -70,7 +70,7 @@ function main() {
     // checks for available update and returns an instance
     // note: we're doing this after we kick off inliner, since there's a
     // noticeable lag in boot because of it
-    var defaults = require('lodash.defaults');
+    var defaults = require('lodash').defaults;
     var pkg = JSON.parse(readFileSync(__dirname + '/../package.json'));
 
     require('update-notifier')({
