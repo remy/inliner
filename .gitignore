@@ -3,3 +3,13 @@ node_modules/
 coverage
 .nyc_output
 tmp/
+
+/.vs
+.DS_Store
+.Thumbs.db
+*.sublime*
+.idea
+debug.log
+package-lock.json
+.vscode/settings.json
+*/.vscode/
