@@ -31,4 +31,4 @@
     $ inliner -H 'User-Agent: Inliner Custom' https://httpbin.org/headers
     $ cat local-file.html | inliner
 
-  For more details see http://github.com/remy/inliner/
+  For more details see http://github.com/tauri-apps/tauri-inliner/

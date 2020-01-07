@@ -2,44 +2,48 @@
 
 Turns your web page to a single HTML file with everything inlined - perfect for appcache manifests on mobile devices that you want to reduce those http requests.
 
-[![Build Status](https://travis-ci.org/remy/inliner.svg)](https://travis-ci.org/remy/inliner)
+![](https://img.shields.io/github/workflow/status/tauri-apps/tauri-inliner/test%20library?label=test%20library
 
 ## What it does
-
 - Get a list of all the assets required to drive the page: CSS, JavaScript, images, videos and images used in CSS
 - Minify JavaScript (via [uglify-js](https://github.com/mishoo/UglifyJS "mishoo/UglifyJS - GitHub"))
 - Strips white from CSS
 - Base64 encode images and videos
-- Puts everything back together as a single HTML file with a simplfied doctype
+- Puts everything back together as a single HTML file with a simplified doctype
 
 ## Installation
-
 Install the `inliner` utility via [npm](http://npmjs.org):
 
-    $ npm install -g inliner
+    $ npm install -g tauri-inliner
+    $ yarn global add tauri-inliner
+
+You can also consume it in your projects locally, which is actually recommended for keeping up with latest versions.
+
+    $ npm install --save-dev @tauri-apps/tauri-inliner
+    $ yarn add --dev @tauri-apps/tauri-inliner
 
 ## Usage
-
 If you have either installed via npm or put the inliner bin directory in your path, then you can use inliner via the command line as per:
 
-    inliner http://remysharp.com
+    inliner https://tauri.studio
 
 This will output the inlined markup with default options. You can see more options on how to disable compression or how not to base64 encode images using the help:
 
-    inliner --help
+    tauri-inliner --help
+    yarn tauri-inliner --help
 
 To use inline inside your own script:
 
     var Inliner = require('inliner');
 
-    new Inliner('http://remysharp.com', function (error, html) {
+    new Inliner('https://tauri.studio', function (error, html) {
       // compressed and inlined HTML page
       console.log(html);
     });
 
 Or:
 
-    var inliner = new Inliner('http://remysharp.com');
+    var inliner = new Inliner('https://tauri.studio');
 
     inliner.on('progress', function (event) {
       console.error(event);
@@ -48,7 +52,7 @@ Or:
       console.log(html);
     });
 
-Once you've inlined the crap out of the page, you can optionally configure a [service worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers) to add advanced caching and offline functionality.
+Once you've inlined the contents of the page, you can optionally configure a [service worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers) to add advanced caching and offline functionality.
 
 ## Support
 
@@ -68,4 +72,4 @@ Once you've inlined the crap out of the page, you can optionally configure a [se
 
 ## Filing issues & PRs
 
-Please see the [contributing](https://github.com/remy/inliner/blob/master/CONTRIBUTING.md) for guidelines.
+Please see the [contributing](https://github.com/tauri-apps/tauri/blob/dev/.github/CONTRIBUTING.md) for guidelines.

@@ -1,0 +1,22 @@
+name: test library
+
+on: pull_request
+
+jobs:
+  test-inliner:
+    runs-on: ${{ matrix.platform }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 3
+    - name: test
+      timeout-minutes: 15
+      run: |
+           yarn
+           yarn test
