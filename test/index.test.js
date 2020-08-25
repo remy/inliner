@@ -118,7 +118,7 @@ test('inliner fixtures', function fixtureTests(t) {
         });
       });
     }));
-  }).catch(t.threw).then(t.end);
+  }).then(t.end);
 });
 
 test('tear down', function (t) {
