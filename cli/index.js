@@ -73,10 +73,6 @@ function main() {
     var defaults = require('lodash.defaults');
     var pkg = JSON.parse(readFileSync(__dirname + '/../package.json'));
 
-    require('update-notifier')({
-      pkg: defaults(pkg, { version: '0.0.0' }),
-    }).notify();
-
     if (argv.verbose) {
       var jobs = {};
       var update = require('./progress');
