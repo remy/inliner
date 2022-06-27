@@ -46,7 +46,7 @@
     "svgo": "^0.6.6",
     "then-fs": "^2.0.0",
     "uglify-js": "^2.8.0",
-    "update-notifier": "^0.5.0"
+    "update-notifier": "^6.0.0"
   },
   "repository": {
     "type": "git",
